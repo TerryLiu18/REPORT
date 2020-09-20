@@ -44,7 +44,7 @@ tweet2node_dict = read_dict_from_json(pth.join('../datasets/twitter16/raw_data/t
 print(len(tweet2tree_id_dict))
 
 tree_dictionary = dict()
-tree_dictionary_save_path = pth.join('../load_data16/tree_dictionary.json')
+tree_dictionary_save_path = pth.join('../load_data16/tree_dictionary_backup.json')
 input_comments_text_dir = pth.join('../datasets/twitter16/processed_data/processed_tweet_profile')
 output_comments_text_path = pth.join('../load_data16/comments_text.csv')
 

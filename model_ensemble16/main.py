@@ -212,12 +212,13 @@ if __name__ == '__main__':
 
     TWEETS_WORD_FILE = '../load_data16/tweets_words_mapping.json'
     tweets_word_map, _ = _load_word2index(TWEETS_WORD_FILE)
-    glove_file = '../glove/glove.twitter.27B.{}d.txt'.format(args.embed_dim)
+    # glove_file = '../glove/glove.twitter.27B.{}d.txt'.format(args.embed_dim)
+    glove_file = os.path.join('../pretrained_dataset/glove.twitter.27B/glove.twitter.27B.{}d.txt'.format(args.embed_dim))
     embed_dim = args.embed_dim
 
     print("--load pretrain embedding now--")
     tweet_embedding_matrix = _get_embedding(glove_file, tweets_word_map, embed_dim)
-    user_embedding_matrix = 0 # currently not use
+    user_embedding_matrix = 0  # currently not use
     # user_embedding_matrix = _get_embedding(glove_file, user_word_map, embed_dim)
     print("***end of load pretrain embedding***")
     ## data loader

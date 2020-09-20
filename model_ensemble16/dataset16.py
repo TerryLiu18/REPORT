@@ -24,7 +24,7 @@ SOURCE_TWEET_NUM = 790
 # tree_dict_path = pth.join('../load_data/tree_dictionary.json')
 
 tweet_path2 = pth.join('../load_data16/comments_text_encode3.csv')
-tree_dict_path = pth.join('../load_data16/tree_dictionary.json')
+tree_dict_path = pth.join('../load_data16/tree_dictionary_backup.json')
 
 # select source tweet
 source_tree_id_list = [str(node) + '_0' for node in list(range(SOURCE_TWEET_NUM))]
@@ -302,6 +302,10 @@ def twitter_collate(batch):
     # print("edge_index shape: ", graph_edge_index.shape)
     
     ## user features
+    # print(u_list2)
+    # # print('------------------------------------------')
+    # print(u_df.head(20))
+    # sleep(10000)
     user_feature = u_df.loc[u_list2]
     user_text = user_feature['text'].tolist()
     # print(user_feature['text'].head())
@@ -357,23 +361,19 @@ if __name__ == "__main__":
     for x in train_data:
         # graph_node_features, graph_edge_index, user_text, user_feats,
         # merged_tree_edge_index, merged_tree_feature, labels, indices
-        # print('-----------------------0.graph_node_features------------------')
-        # print(x[0])
-        # print('-----------------------1.graph_edge_index------------------')
-        # print(x[1])
-        # print('-----------------------2.user_text------------------')
-        # print(x[2])
-        # print('-----------------------3.user_feats------------------')
-        # print(x[3])
-        # print('-----------------------4.merged_tree_edge_index------------------')
-        # print(x[4])
-        # print('-----------------------5.merged_tree_feature------------------')
-        # print(x[5])
-        # print('-----------------------6.labels------------------')
-        # print(x[6])
+        print('-----------------------0.graph_node_features------------------')
+        print(x[0])
+        print('-----------------------1.graph_edge_index------------------')
+        print(x[1])
+        print('-----------------------2.user_text------------------')
+        print(x[2])
+        print('-----------------------3.user_feats------------------')
+        print(x[3])
+        print('-----------------------4.merged_tree_edge_index------------------')
+        print(x[4])
+        print('-----------------------5.merged_tree_feature------------------')
+        print(x[5])
+        print('-----------------------6.labels------------------')
+        print(x[6])
         # print('-----------------------7.indices------------------')
-        print(x[7])
-        # break
-#     end = time.time()
-#     total_time = end-start
-#     print("total_time: {}".format(total_time))
+        # print(x[7])

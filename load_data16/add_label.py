@@ -36,7 +36,7 @@ df.to_csv('comments_text_encode3.csv', encoding='utf-8', line_terminator='\n')
 df = pd.read_csv('filtered_user_profile_encode1.csv', encoding='utf-8')
 
 length = df.shape[0]
-df['node_id'] = list(range(682, 682+length))
+df['node_id'] = list(range(790, 790+length))
 df = df[['node_id','user_id','created_time','statuses_count',
          'favourites_count','listed_count','followers_count',
          'friends_count','text','year','month','day','hour']]
