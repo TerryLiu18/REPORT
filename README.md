@@ -1,4 +1,4 @@
-# HierarchyGCN
+# ParallelGCN
 
 This is the HierarchyGCN code for fake news detection. We are currently using **twitter16 dataset**
 

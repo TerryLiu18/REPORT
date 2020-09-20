@@ -19,7 +19,7 @@ def save_dict_to_json(item, path, overwrite=True):
         except Exception as e:
             print("write error==>", e)
 
-tree_dir = pth.join(os.getcwd(), 'tweet_tree')
+tree_dir = pth.join(os.getcwd(), 'tree_tree')
 tweet2matrix_idx = dict()
 cnt = 0
 

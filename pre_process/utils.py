@@ -88,8 +88,7 @@ no_connection_user_list = []
 
 # ---------------- no use tweet -------------------------
 if pth.isfile(maximum_appear_dict_path):
-    tweet_maximum_appear_dict = tools.read_dict_from_json(
-        maximum_appear_dict_path)
+    tweet_maximum_appear_dict = tools.read_dict_from_json(maximum_appear_dict_path)
 else:
     print("write maximum_appear_dict: {}".format(maximum_appear_dict_path))
     for tweet, user_list in tweet_user_dict.items():
@@ -143,7 +142,6 @@ class DataFilter:
         self.tweet_profile_dir = pth.join(raw_data_dir, "tweet_profile")
         self.filtered_user_info_path = pth.join(auxiliary_data_dir, 'filtered_user_profile.csv')
         self.preprocess_dir = processed_data_dir
-        self.pretrained_twitter_dataset_dir = pth.join(root_path, 'pretrained_dataset')
 
     def filter_user(self, f_num):
         """

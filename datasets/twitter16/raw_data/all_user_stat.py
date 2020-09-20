@@ -99,11 +99,25 @@ for tweet in thread_user_dictset:
 
 tools.iterable2txt(delete_tweet_list, pth.join('../auxiliary_data/delete_tweet_list.txt'))
 
-drop_cnt = 0
+user_profile_dir = pth.join('../raw_data/user_profile')
+tweet_profile_dir = pth.join('../raw_data/tweet_profile')
+tree_profile_dir = pth.join('../raw_data/tweet_tree')
+tree_tree_dir = pth.join('../raw_data/tree_tree')
+graph_tree_dir = pth.join('../raw_data/graph_tree')
+
+drop_user_cnt = 0
 for tweet in delete_tweet_list:
+    # os.remove(pth.join(user_profile_dir, tweet+'.csv'))
+    # os.remove(pth.join(tweet_profile_dir, tweet+'.csv'))
+    # os.remove(pth.join(tree_profile_dir, tweet+'.txt'))
+    os.remove(pth.join(tree_tree_dir, tweet+'.txt'))
+    os.remove(pth.join(graph_tree_dir, tweet+'.txt'))
+    print('remove {} series'.format(tweet))
+
     for user in thread_user_dictset[tweet]:
         df = df.drop(user)
-        drop_cnt += 1
-        print('drop: {}'.format(user))
-print("drop_cnt", drop_cnt)
+        drop_user_cnt += 1
+        # print('drop: {}'.format(user))
+print("drop_user_cnt", drop_user_cnt)
 df.to_csv(appearall_users_info, line_terminator='\n')
+

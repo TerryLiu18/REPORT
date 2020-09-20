@@ -45,7 +45,7 @@ print(len(tweet2tree_id_dict))
 
 tree_dictionary = dict()
 tree_dictionary_save_path = pth.join('../load_data16/tree_dictionary.json')
-input_comments_text_dir = pth.join('../datasets/twitter16/processed_data/processed_tweet_tree_profile')
+input_comments_text_dir = pth.join('../datasets/twitter16/processed_data/processed_tweet_profile')
 output_comments_text_path = pth.join('../load_data16/comments_text.csv')
 
 # structure of tree_dictionary:  node_id[node_id][tree_id][tree_id] = child
