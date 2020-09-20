@@ -9,7 +9,6 @@ import json
 from datetime import datetime
 import pandas as pd
 import numpy as np
-import task
 
 
 # modified by tianrui
@@ -163,7 +162,6 @@ def main():
 
     ### map sentence to index
     max_len = np.percentile(sent_len, 99)
-    # out_file = os.path.join(dir_path, 'load_data15/filtered_user_profile_encode1.csv')
     out_file = os.path.join(dir_path, 'load_data16/filtered_user_profile_encode1.csv')
     _user_seq2index(user_file_path, out_file, word2index, int(max_len))
     
@@ -171,8 +169,6 @@ def main():
     ### read tweets content
     print('-'*89)
     print('***map tweets words to index using dictionary***')
-    # tweet_file = 'load_data16/comments_text.csv'
-    # tweet_file = 'datasets/twitter15/processed_data/processed_source_tweet.csv'
     tweet_file = os.path.join('../load_data16/comments_text.csv')
     tweet_words_list, sent_len = _get_word_list(tweet_file)
     
@@ -187,7 +183,6 @@ def main():
     # print(sorted(sent_len))
     ## replace text with index
     max_len = np.percentile(sent_len, 99)
-    # out_file = os.path.join(dir_path, 'load_data/comments_text_encode1.csv')
     out_file = os.path.join(dir_path, 'load_data16/comments_text_encode1.csv')
     _tweets_seq2index(tweet_file, out_file, word2index, int(max_len))
     

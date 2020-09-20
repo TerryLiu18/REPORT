@@ -1,9 +1,8 @@
 import os.path as pth
-import tools
-from collections import OrderedDict, defaultdict
 import pandas as pd
-from utils import filtered_dataframe, tweet2node_dict, tweet2mat
-
+from collections import defaultdict
+from pre_process.tools import read_dict_from_json, txt2iterable, save_dict_to_json
+from pre_process.utils import filtered_dataframe, tweet2mat
 
 def add_edge_index(arr, a, b) -> "node_dict; a:b, b:a":
     """arr = {}"""
@@ -14,16 +13,26 @@ def add_edge_index(arr, a, b) -> "node_dict; a:b, b:a":
     return arr
 
 
-tweet_user_dict = tools.read_dict_from_json(pth.join('../load_data16/tweet_user_dict.json'))
-user_tweet_dict = tools.read_dict_from_json(pth.join('../load_data16/user_tweet_dict.json'))
+tweet_user_dict = read_dict_from_json(pth.join('../load_data16/tweet_user_dict.json'))
+user_tweet_dict = read_dict_from_json(pth.join('../load_data16/user_tweet_dict.json'))
+delete_tweet_list = txt2iterable(pth.join('../datasets/twitter16/auxiliary_data/delete_tweet_list.txt'))
+delete_user_list = txt2iterable(pth.join('../datasets/twitter16/auxiliary_data/delete_user_list.txt'))
 
-tweet_path = '../load_data16/processed_source_tweet.csv'
-user_path = '../load_data16/filtered_user_profile_encode1.csv'
+for tweet in delete_tweet_list:
+    if tweet in tweet_user_dict:
+        del tweet_user_dict[tweet]
+assert len(tweet_user_dict) == 790
 
-content1 = pd.read_csv(pth.join(tweet_path))
-content2 = pd.read_csv(pth.join(user_path))
-tweet_df = pd.DataFrame(content1)
-user_df = pd.DataFrame(content2)
+for user in delete_user_list:
+    if user in user_tweet_dict:
+        del user_tweet_dict[user]
+
+
+tweet_path = pth.join('../load_data16/processed_source_tweet.csv')
+user_path = pth.join('../load_data16/filtered_user_profile_encode1.csv')
+tweet_df = pd.read_csv(tweet_path)
+user_df = pd.read_csv(user_path)
+
 tweet_list = tweet_df['tweet_id'].astype(str).tolist()
 user_list = user_df['user_id'].astype(str).tolist()
 tweet_num = len(tweet_list)
@@ -33,7 +42,7 @@ user2node_dict = dict(zip(user_list,  [str(i) for i in list(range(tweet_num, twe
 
 
 tweet_num = len(tweet2node_dict)
-max_tweet_index = tweet_num - 1  # 1309/681
+max_tweet_index = tweet_num - 1
 number_list = filtered_dataframe['appear in dataset'].tolist()
 total_connection = sum(number_list)
 user_num = len(number_list)
@@ -67,15 +76,13 @@ for index, row in filtered_dataframe.iterrows():
             record_counter += 1
         except Exception:
             print(tweet)
-            # print("user_mat_idx: {}".format(user_mat_idx))
-            # print("tweet_mat_idx: {}".format(tweet_mat_idx))
-            raise Exception("tweet_id not found")
+            raise ValueError("tweet_id not found")
 
 
 if __name__ == '__main__':
     print(len(edge_idx))
     # save_path = '../load_data15/tw15_connections.json'
     save_path = '../load_data16/tw16_connections.json'
-    tools.save_dict_to_json(edge_idx, save_path)
+    save_dict_to_json(edge_idx, save_path)
 
 

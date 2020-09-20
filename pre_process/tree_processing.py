@@ -48,7 +48,7 @@ user_id, tweet_id, time -> ...
 """
 
 
-def _get_tweet_record(tweet_id, df, recorded_list):
+def get_tweet_record(tweet_id, df, recorded_list):
     if tweet_id not in recorded_list:
         raise Exception("tweet_id not in recorded_list")
     idx = df[df['tweet_id'].astype(str) == str(tweet_id)].index.tolist()
@@ -128,9 +128,9 @@ for file in tqdm(f_list):
         tree_connect_dict = {}
         for pair in connection_set:
             (i, j) = pair
-            user_id0, text0 = _get_tweet_record(tweet0, df, recorded_comments_list)
+            user_id0, text0 = get_tweet_record(tweet0, df, recorded_comments_list)
             write_rec0 = [user_id0, tweet0, text0]
-            user_id1, text1 = _get_tweet_record(tweet1, df, recorded_comments_list)
+            user_id1, text1 = get_tweet_record(tweet1, df, recorded_comments_list)
             write_rec1 = [user_id1, tweet1, text1]
             new_line = str(write_rec0) + '->' + str(write_rec1) + '\n'
             fw.write(new_line)
@@ -161,7 +161,7 @@ with open(output_comments_text_path, 'w', encoding='utf-8', newline='') as wcsv:
             df = df.where(df.notnull(), None)
             recorded_comments_list = df['tweet_id'].astype(str).tolist()
 
-        t_id, text = _get_tweet_record(tweet_id, df, recorded_comments_list)
+        t_id, text = get_tweet_record(tweet_id, df, recorded_comments_list)
         newrow = [tree_id, t_id, text]
         # print(newrow)
         csv_write.writerow(newrow)

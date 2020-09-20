@@ -43,6 +43,14 @@ content = pd.read_csv(tweet_info_path, lineterminator='\n', encoding='utf-8')
 df = pd.DataFrame(content, columns=["source_tweet_id", "source_user_id", "text",
                                     "label", "record_number", "user_number", "unique_tweet_number"])
 df = df.where(df.notnull(), None)
+df = df.set_index('source_tweet_id')
+
+for index, line in df.iterrows():
+    if str(index) in delete_tweet_list:
+        df = df.drop(index)
+        print('drop: {}'.format(index))
+
+df = df.reset_index()
 df['source_tweet_id'] = df['source_tweet_id'].apply(lambda x: str(x))
 df['text'] = df['text'].apply(lambda x: get_text(x))
 df['label'] = df['label'].apply(lambda x: get_label(x))

@@ -11,8 +11,8 @@ original_tree_dir = tree_checker.original_tree_dir
 
 tweet_set = tree_checker.available_tweet_set
 user_set = tree_checker.available_user_set
-graph_tree_dir = pth.join('../datasets/twitter16/raw_data/graph_tree')
-tree_tree_dir = pth.join('../datasets/twitter16/raw_data/tree_tree')
+graph_tree_dir = pth.join('../raw_data/graph_tree')
+tree_tree_dir = pth.join('../raw_data/tree_tree')
 
 if not pth.exists(graph_tree_dir):
     os.mkdir(graph_tree_dir)

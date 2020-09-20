@@ -38,21 +38,11 @@ if dataset_name == 'twitter15':
 if dataset_name == 'twitter16':
     load_data = 'load_data16'
 
-
-tweet2node_dict = dict()
 count = 0
+tweet2node_dict = dict()
 tweet2node_dict_path = pth.join('../load_data16/tweet2node_dict.json')
-
-if not pth.exists(tweet2node_dict_path):
-    for file in os.listdir(user_profile_path):
-        tweet_id = file.split('.')[0]
-        tweet2node_dict[tweet_id] = count
-        count += 1
-    tools.save_dict_to_json(tweet2node_dict, tweet2node_dict_path)
-    print("write: {}".format(tweet2node_dict_path))
-else:
-    print("{} already exists".format(tweet2node_dict_path))
-    tweet2node_dict = tools.read_dict_from_json(tweet2node_dict_path)
+tweet2node_dict = tools.read_dict_from_json(tweet2node_dict_path)
+assert len(tweet2node_dict) == 790, print(len(tweet2node_dict))
 print("Transformation between tweet_id and node_index done")
 
 # get tweet_user_dict, user_tweet_dict
@@ -65,7 +55,7 @@ print('len(user_appear_record)', len(user_appear_record))
 tweet_user_dict_path = pth.join('../load_data16/tweet_user_dict.json')
 user_tweet_dict_path = pth.join('../load_data16/user_tweet_dict.json')
 
-if pth.isfile(tweet_user_dict_path) and pth.isfile(user_tweet_dict_path):
+if pth.exists(tweet_user_dict_path) and pth.exists(user_tweet_dict_path):
     user_tweet_dict = tools.read_dict_from_json(user_tweet_dict_path)
     tweet_user_dict = tools.read_dict_from_json(tweet_user_dict_path)
 else:

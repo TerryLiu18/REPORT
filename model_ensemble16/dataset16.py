@@ -17,7 +17,7 @@ pd.set_option('display.max_columns', None)
 pd.set_option('display.max_rows', None)
 pd.set_option('max_colwidth', 120)
 
-SOURCE_TWEET_NUM = 802
+SOURCE_TWEET_NUM = 790
 
 # prepare df for acceleration
 # tweet_path2 = pth.join('../load_data/comments_text_encode3.csv')
@@ -252,12 +252,12 @@ def twitter_collate(batch):
         loss_tweet_map[str(t)] = loss_tweet_idx
         loss_tweet_idx += 1
         labels.append(graph_info['label'])
-        u_list2 = adjdict[str(t)]  # todo empty tree
+        u_list = adjdict[str(t)]  # todo empty tree
         # except KeyError:
         #     print('adjdict', adjdict)
         #     print('t', t)
 
-        for u in u_list2:
+        for u in u_list:
             if str(u) not in user_map:
                 user_map[str(u)] = bias + user_idx
                 user_idx += 1
