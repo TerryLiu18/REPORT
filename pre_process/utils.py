@@ -7,7 +7,7 @@ from pre_process import tools
 import argparse
 from time import sleep
 
-parser = argparse.ArgumentParser(description='choose dataset: "twitter15" or "covid-19"')
+parser = argparse.ArgumentParser(description='choose dataset: "twitter15" or "twitter16"')
 parser.add_argument('--dataset', type=str, help='choose dataset folder', default='twitter16')
 parser.add_argument('--filter', type=int, help='filter users whose appearance < n in graph', default=4)
 args = parser.parse_args()
@@ -15,15 +15,10 @@ dataset_name = args.dataset
 filter_num = args.filter
 
 # -------------------------------------- define path name ----------------------------------------------------
-project_name = 'MyGAT'
-loc = os.path.abspath(os.path.dirname(__file__)).split(project_name)[0]
-root_path = pth.join(loc, project_name)
-print("root_path: {}".format(root_path))
 
-dataset_path = pth.join(root_path, 'datasets', dataset_name)
-raw_data_dir = pth.join(dataset_path, 'raw_data')
-auxiliary_data_dir = pth.join(dataset_path, 'auxiliary_data')
-processed_data_dir = pth.join(dataset_path, 'processed_data')
+raw_data_dir = pth.join('../datasets/{}/raw_data'.format(dataset_name))
+auxiliary_data_dir = pth.join('../datasets/{}/auxiliary_data'.format(dataset_name))
+processed_data_dir = pth.join('../datasets/{}/processed_data'.format(dataset_name))
 
 if not pth.exists(raw_data_dir): os.makedirs(raw_data_dir)
 if not pth.exists(auxiliary_data_dir): os.makedirs(auxiliary_data_dir)
@@ -37,6 +32,12 @@ if not pth.exists(user_profile_path) and pth.exists(tweet_content_path) and pth.
     raise Exception("{}".format(user_profile_path))
 
 # -------------------------------------- get auxiliary files ----------------------------------------------------
+
+if dataset_name == 'twitter15':
+    load_data = 'load_data15'
+if dataset_name == 'twitter16':
+    load_data = 'load_data16'
+
 
 tweet2node_dict = dict()
 count = 0
@@ -58,15 +59,13 @@ print("Transformation between tweet_id and node_index done")
 csv_path = pth.join('../datasets/{}/raw_data/all_user_info.csv'.format(dataset_name))
 df = pd.read_csv(csv_path, lineterminator='\n')
 user_id_list = df['user_id'].astype(str).tolist()
-user_appear_record = df["record\r"].tolist()
+user_appear_record = df['record'].tolist()
 user_appear_record = [list(eval(i).keys()) for i in user_appear_record]
 print('len(user_appear_record)', len(user_appear_record))
-tweet_user_dict_path = pth.join(root_path, 'load_data16', "tweet_user_dict.json")
-user_tweet_dict_path = pth.join(root_path, 'load_data16', "user_tweet_dict.json")
+tweet_user_dict_path = pth.join('../load_data16/tweet_user_dict.json')
+user_tweet_dict_path = pth.join('../load_data16/user_tweet_dict.json')
 
 if pth.isfile(tweet_user_dict_path) and pth.isfile(user_tweet_dict_path):
-    print(tweet_user_dict_path)
-    print(user_tweet_dict_path)
     user_tweet_dict = tools.read_dict_from_json(user_tweet_dict_path)
     tweet_user_dict = tools.read_dict_from_json(tweet_user_dict_path)
 else:
@@ -90,7 +89,7 @@ no_connection_user_list = []
 # ---------------- no use tweet -------------------------
 if pth.isfile(maximum_appear_dict_path):
     tweet_maximum_appear_dict = tools.read_dict_from_json(
-        maximum_appear_dict_path)  # todo: maximum_appear_dict is wrong!
+        maximum_appear_dict_path)
 else:
     print("write maximum_appear_dict: {}".format(maximum_appear_dict_path))
     for tweet, user_list in tweet_user_dict.items():
