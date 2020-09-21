@@ -17,6 +17,7 @@ from tree_checker import parse_record
 from tqdm import tqdm
 from pre_process.tools import save_dict_to_json, read_dict_from_json
 
+
 def get_tweet_record(tweet_id, df, recorded_list):
     if tweet_id not in recorded_list:
         raise Exception("tweet_id not in recorded_list")
@@ -28,7 +29,6 @@ def get_tweet_record(tweet_id, df, recorded_list):
     idx = idx[0]
     u_id, tex = df.loc[idx, 'tweet_id'], df.loc[idx, 'text']
     return str(u_id), str(tex)
-
 
 
 def build_graph(lines, source_id):
@@ -61,107 +61,88 @@ def dfs(cur):
 tree_tree_dir = pth.join('../datasets/twitter16/raw_data/tree_tree')
 tweet2mat_dict = read_dict_from_json('../datasets/twitter16/raw_data/tweet2matrix_idx.json')
 
+if __name__ == '__main__':
+    tree_id2tweet_dict = dict()
+    tree_dictionary = dict()
+    for f in tqdm(os.listdir(tree_tree_dir)):
+        source_id = f.split('.')[0]
+        tree_num = tweet2mat_dict[source_id]
+        tree_id = str(tree_num) + '_0'
+        one_tree_dict = dict()
+        one_tree_dict[tree_id] = []
 
-node = 0
-tweet2tree_id_dict = dict()
+        print(tree_id)
+        fr = open(pth.join(tree_tree_dir, f), 'r')
+        lines = fr.readlines()
+        fr.close()
 
+        del_edge = set()
+        del_node = set()
+        # build graph
+        parent2child = build_graph(lines, source_id)
+        # print('original p2c', len(parent2child))
+        visit = set()
+        dfs(source_id)
 
-for f in tqdm(os.listdir(tree_tree_dir)):
-    source_id = f.split('.')[0]
-    tree_num = tweet2mat_dict[source_id]
-    tree_id = str(tree_num) + '_0'
-    print(tree_id)
+        for parent, child_list in parent2child.items():
+            if parent not in visit:
+                del_node.add(parent)
+            for child in child_list:
+                if child not in visit:
+                    del_edge.add((parent, child))
 
-    fr = open(pth.join(tree_tree_dir, f), 'r')
-    lines = fr.readlines()
-    fr.close()
+        for (parent, child) in del_edge:
+            parent2child[parent].remove(child)
+        for false_node in del_node:
+            del parent2child[false_node]
 
-    del_edge = set()
-    del_node = set()
-    # build graph
-    parent2child = build_graph(lines, source_id)
-    # print('original p2c', len(parent2child))
-    visit = set()
-    dfs(source_id)
+        print('p2c after dfs', sum([len(i) for i in parent2child.values()]))
+        length = 0
+        for i, lt in parent2child.items():
+            length += len(lt)
+        if length != len(visit) - 1:
+            raise ValueError('source_id', source_id)
 
-    for parent, child_list in parent2child.items():
-        if parent not in visit:
-            del_node.add(parent)
-        for child in child_list:
-            if child not in visit:
-                del_edge.add((parent, child))
+        idx = 0
+        tree_id = str(tree_num) + '_' + str(idx)
+        tree_id2tweet_dict[tree_id] = source_id
+        numbered_list = []
+        numbered_list.append(source_id)  # take record of visited_tree
 
-    for (parent, child) in del_edge:
-        parent2child[parent].remove(child)
-    for false_node in del_node:
-        del parent2child[false_node]
+        tweet2tree_id_dict = dict()
+        for p, child_list in parent2child.items():
+            if p not in numbered_list and p in visit:
+                idx += 1
+                tree_id = str(tree_num) + '_' + str(idx)
+                tree_id2tweet_dict[tree_id] = p
+                numbered_list.append(p)
 
-    print('p2c after dfs', sum([len(i) for i in parent2child.values()]))
-    length = 0
-    for i, lt in parent2child.items():
-        length += len(lt)
-    if length != len(visit)-1:
-        print('length', length)
-        print('visit', len(visit))
-        raise ValueError('source_id', source_id)
+                # tweet2tree_id_dict[p] = tree_id
+                # if tree_id not in one_tree_dict:
+                #     one_tree_dict[tree_id] = []
 
-    idx = 0
-    tree_id = str(tree_num) + '_' + str(idx)
-    tweet2tree_id_dict[tree_id] = source_id
-    numbered_list = []
-    numbered_list.append(source_id)
-    for p, child_list in parent2child.items():
-        # if p in tweet2tree_id_dict.keys():
-        #     pass
-        # if p not in visit: # not connected to root
-        #     pass
-        if p not in numbered_list and p in visit:
-            idx += 1
-            tree_id = str(tree_num) + '_' + str(idx)
-            # print('add parent tree_id: {}'.format(tree_id))
-            tweet2tree_id_dict[tree_id] = p
-
-        for child in child_list:
-            if child not in visit or child in numbered_list:
-                continue
-            idx += 1
-            tree_id = str(tree_num) + '_' + str(idx)
-            # print('add tree_id: {}'.format(tree_id))
-            tweet2tree_id_dict[tree_id] = child
-            numbered_list.append(child)
-
-
-tweet2tree_id_dict_path = pth.join('../datasets/twitter16/auxiliary_data/tweet2tree_dict.json')
-save_dict_to_json(tweet2tree_id_dict, tweet2tree_id_dict_path)
-
-
+            for child in child_list:
+                if child not in visit or child in numbered_list:
+                    continue
+                idx += 1
+                child_tree_id = str(tree_num) + '_' + str(idx)
+                tree_id2tweet_dict[child_tree_id] = child
+                # tweet2tree_id_dict[child] = child_tree_id
+                numbered_list.append(child)
+                # print(tweet2tree_id_dict)
+                # parent_tree_id = tweet2tree_id_dict[p]
+                # one_tree_dict[parent_tree_id].append(child_tree_id)
+        tree_dictionary[tree_num] = one_tree_dict
 
 
 
 
 
+    tree_id2tweet_dict_path = pth.join('../datasets/twitter16/auxiliary_data/tree2tweet_dict.json')
+    # tree_dictionary_path = pth.join('../datasets/twitter16/auxiliary_data/tree_dictionary_path.json')
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    save_dict_to_json(tree_id2tweet_dict, tree_id2tweet_dict_path)
+    save_dict_to_json(tree_dictionary, tree_dictionary_path)
 #
 #
 #
@@ -173,10 +154,6 @@ save_dict_to_json(tweet2tree_id_dict, tweet2tree_id_dict_path)
 #
 #
 #
-
-
-
-
 
 
 #
