@@ -28,7 +28,7 @@ tweet2tree_id_path = pth.join('../datasets/twitter16/processed_data/tweet2tree_i
 tweet2tree_id_dict = dict()   # this is the dict between tree_id
 
 
-tree_dictionary_save_path = pth.join('../load_data16/tree_dictionary_backup.json')
+tree_dictionary_save_path = pth.join('../load_data16/backup/tree_dictionary_backup.json')
 input_comments_text_dir = pth.join('../datasets/twitter16/processed_data/processed_tweet_profile')
 output_tree_structure_dir = pth.join('../datasets/twitter16/processed_data/processed_tweet_tree')
 output_comments_text_path = pth.join('../load_data16/comments_text.csv')

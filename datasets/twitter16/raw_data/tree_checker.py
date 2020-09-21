@@ -3,7 +3,9 @@
 import os
 import os.path as pth
 import pandas as pd
+from collections import defaultdict
 from pre_process import tools
+
 
 original_tree_dir = pth.join('../raw_data/tweet_tree')
 tweet_dir = pth.join('../raw_data/tweet_profile')
@@ -92,56 +94,126 @@ def check_ancestor(tweet, source_tweet, child2parent):
     return tweet is source_tweet
 
 
-def tree_line_checker(lines, source_id):
-    """
-    check if each edge is a available record
-    :param file: file path
-    :return: parent_available_dict  eg: ['1234':True, '3123':False]
-    """
-    parent_record_dict = {}
-    child2parent = {}
+
+
+def build_graph(lines, source_id):
+    parent2child = defaultdict(list)
     for line in lines:
         if '->' not in line:
             continue
+        line = line.rstrip()
         _, _, parent_tweet, child_tweet = parse_record(line)
         if parent_tweet != child_tweet:
-            child2parent[child_tweet] = parent_tweet
-    for line in lines:
-        if '->' not in line:
-            continue
-        _, _, parent_tweet, child_tweet = parse_record(line)
-        if parent_tweet == child_tweet:
-            continue
-        # print(parent_tweet, child_tweet)
-        new_record_parent = parent_tweet
+            parent2child[parent_tweet].append(child_tweet)
+    return parent2child
 
-        count = 0
-        isloop = 0
-        while parent_tweet != source_id:
-            if count >= 50:
-                isloop = 1
-                break
-            if parent_tweet in child2parent:
-                count += 1
-                parent_tweet = child2parent[parent_tweet]
-            else:
-                break
-        if parent_tweet == source_id:
-            parent_record_dict[new_record_parent] = True
+
+def dfs(cur, father, parent2child, visit):
+    visit.add(cur)
+    if y not in parent2child[cur]:
+        return None
+    for y in parent2child[cur]:
+        if y != father and y in visit:
+            del parent2child[cur][y]
         else:
-            parent_record_dict[new_record_parent] = False
-        if isloop:
-            parent_record_dict[new_record_parent] = True
-    parent_record_dict[source_id] = True
-    return parent_record_dict
+            dfs(y, cur, parent2child, visit)
 
 
-if __name__ == '__main__':
-    file_dir = pth.join('../datasets/twitter16/raw_data/tree_tree')
-    for f in os.listdir(file_dir):
-        source_id = f.split('.')[0]
-        f = open(pth.join(file_dir, f), 'r')
-        lines = f.readlines()
-        f.close()
-        pdict = tree_line_check(lines, source_id)
-        print(pdict)
+
+tree_tree_dir = pth.join('../raw_data/tree_tree')
+
+
+
+node = 0
+tweet2tree_id_dict = dict()
+
+for f in os.listdir(tree_tree_dir):
+    source_id = f.split('.')[0]
+    node_id = node
+    tweet2tree_id_dict[source_id] = str(node_id) + '_0'
+
+    fr = open(pth.join(tree_tree_dir, f), 'r')
+    lines = fr.readlines()
+    fr.close()
+
+    # build graph
+    parent2child = build_graph(lines, source_id)
+    visit = set()
+    dfs(source_id, 'root', parent2child, visit)
+    parent2child
+    break
+
+
+
+
+# def tree_line_checker(lines, source_id):
+#     """
+#     check if each edge is a available record
+#     :param file: file path
+#     :return: parent_available_dict  eg: ['1234':True, '3123':False]
+#     """
+#     parent_record_dict = {}
+#     child2parent = {}
+#     for line in lines:
+#         if '->' not in line:
+#             continue
+#         _, _, parent_tweet, child_tweet = parse_record(line)
+#         if parent_tweet != child_tweet:
+#             child2parent[child_tweet] = parent_tweet
+#
+#     for line in lines:
+#         if '->' not in line:
+#             continue
+#         _, _, parent_tweet, child_tweet = parse_record(line)
+#         if parent_tweet == child_tweet:
+#             continue
+#         # print(parent_tweet, child_tweet)
+#         new_record_parent = parent_tweet
+#
+#         count = 0
+#         isloop = 0
+#         while parent_tweet != source_id:
+#             if count >= 50:
+#                 isloop = 1
+#                 break
+#             if parent_tweet in child2parent:
+#                 count += 1
+#                 parent_tweet = child2parent[parent_tweet]
+#             else:
+#                 break
+#         if parent_tweet == source_id:
+#             parent_record_dict[new_record_parent] = True
+#         else:
+#             parent_record_dict[new_record_parent] = False
+#         if isloop:
+#             parent_record_dict[new_record_parent] = True
+#     parent_record_dict[source_id] = True
+#     return parent_record_dict
+#
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# if __name__ == '__main__':
+#     file_dir = pth.join('../datasets/twitter16/raw_data/tree_tree')
+#     for f in os.listdir(file_dir):
+#         source_id = f.split('.')[0]
+#         f = open(pth.join(file_dir, f), 'r')
+#         lines = f.readlines()
+#         f.close()
+#         pdict = tree_line_checker(lines, source_id)
+#         print(pdict)
