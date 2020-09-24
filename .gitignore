@@ -1,0 +1,17 @@
+/datasets/
+/load_data16/backup/
+/pre_process/backup/
+/pre_process/tokexun/
+/model_tree/backup/
+/model_ensemble16/.idea/
+/model_ensemble16/logs/
+/model_ensemble16/runs/
+/model_ensemble16/__pycache__/
+/model_tree/backup/
+/pre_process/backup/
+/pretrained_dataset/
+/model_ensemble16/runs/*
+/model_ensemble/__pycache__/
+/model_graph2tree/__pycache__/
+/model_tree2graph/__pycache__/
+/model_tree/__pycache__/
