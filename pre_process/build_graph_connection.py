@@ -4,6 +4,8 @@ from collections import defaultdict
 from pre_process.tools import read_dict_from_json, txt2iterable, save_dict_to_json
 from pre_process.utils import filtered_dataframe, tweet2mat
 
+filter_num = 5
+
 def add_edge_index(arr, a, b) -> "node_dict; a:b, b:a":
     """arr = {}"""
     a = int(a)
@@ -82,7 +84,7 @@ for index, row in filtered_dataframe.iterrows():
 if __name__ == '__main__':
     print(len(edge_idx))
     # save_path = '../load_data15/tw15_connections.json'
-    save_path = '../load_data16/tw16_connections.json'
+    save_path = '../load_data16/tw16_connections{}.json'.format(str(filter_num))
     save_dict_to_json(edge_idx, save_path)
 
 

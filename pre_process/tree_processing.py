@@ -10,42 +10,11 @@ import os
 import os.path as pth
 import pandas as pd
 from tqdm import tqdm
-from pre_process import tools
+from collections import defaultdict
 from pre_process import tree_checker
-from time import sleep
-
-if not pth.isdir('../datasets/twitter16/processed_data/processed_tweet_profile'):
-    os.mkdir(pth.join('../datasets/twitter16/processed_data/processed_tweet_profile'))
-
-if not pth.isdir('../datasets/twitter16/processed_data/processed_tree_tree'):
-    os.mkdir(pth.join('../datasets/twitter16/processed_data/processed_tree_tree'))
-
-output_tree_structure_dir = pth.join('../datasets/twitter16/processed_data/processed_tweet_tree')
-if not pth.exists(output_tree_structure_dir):
-    os.mkdir(output_tree_structure_dir)
-
-tweet2tree_id_path = pth.join('../datasets/twitter16/processed_data/tweet2tree_id_dict.txt')
-tweet2tree_id_dict = dict()   # this is the dict between tree_id
-
-
-tree_dictionary_save_path = pth.join('../load_data16/backup/tree_dictionary_backup.json')
-input_comments_text_dir = pth.join('../datasets/twitter16/processed_data/processed_tweet_profile')
-output_tree_structure_dir = pth.join('../datasets/twitter16/processed_data/processed_tweet_tree')
-output_comments_text_path = pth.join('../load_data16/comments_text.csv')
-"""
-user_id, tweet_id, time -> ...
-['ROOT', 'ROOT', '0.0']->['139255910', '356268980211687424', '0.0']
-['139255910', '356268980211687424', '0.0']->['441994716', '356268980211687424', '6.7']
-['441994716', '356268980211687424', '6.7']->['222615066', '356268980211687424', '6.7']
-['139255910', '356268980211687424', '0.0']->['44748394', '356268980211687424', '6.7']
-
-,tweet_id,user_id,text,retweet_count,favorite_count
-0,273185394944794625,822368798,i was one of those hurt ! i just came home from hospital .,0,0
-1,273470833022865408,631634039,,0,0
-2,273220001492762624,538417111,"oh , if only .",0,0
-3,273224999287025664,129145854,is this story true or faking news ? ?,0,0
-4,273186640015544320,376427402,"now that is real darwinism , rt 42 mil dead in bloodiest black friday weekend on record <url>",0,0
-"""
+from tree_checker import parse_record
+from tqdm import tqdm
+from pre_process.tools import save_dict_to_json, read_dict_from_json
 
 
 def get_tweet_record(tweet_id, df, recorded_list):
@@ -61,115 +30,143 @@ def get_tweet_record(tweet_id, df, recorded_list):
     return str(u_id), str(tex)
 
 
-counter = 0
-abnormal_count = 0
-abnormal_list = []
-input_tree_structure_dir = pth.join('../datasets/twitter16/raw_data/tree_tree')
-f_list = os.listdir(input_tree_structure_dir)
+def build_graph(lines, source_id):
+    parent2child = defaultdict(list)
+    parent2child[source_id] = []
+    for line in lines:
+        if '->' not in line:
+            continue
+        line = line.rstrip()
+        _, _, parent_tweet, child_tweet = parse_record(line)
+        if parent_tweet != child_tweet and child_tweet not in parent2child[parent_tweet]:
+            parent2child[parent_tweet].append(child_tweet)
+    return parent2child
 
-tree_dictionary = {}
 
-tweet2node_dict = tools.read_dict_from_json(pth.join('../load_data16/tweet2node_dict.json'))
+def dfs(cur):
+    visit.add(cur)
+    # print('visit add: {}'.format(cur))
+    if cur not in parent2child.keys():
+        return None
+    for y in parent2child[cur]:
+        # if y != father and y in visit:
+        if y in visit:
+            del_edge.add((cur, y))  # parent2child[cur].remove(y)
+        else:
+            # print('goto y:', y)
+            dfs(y)
 
-for file in tqdm(f_list):
-    source_id = file.split('.')[0]
-    f_path = pth.join(input_tree_structure_dir, file)
-    fout_path = pth.join(output_tree_structure_dir, file)
-    content = pd.read_csv(pth.join(input_comments_text_dir, source_id+'.csv'), lineterminator='\n', encoding='utf-8')
-    df = pd.DataFrame(content)
-    recorded_comments_list = df['tweet_id'].astype(str).tolist()  # these are the tweets whose texts are unique and can be found
-    node_id = tweet2node_dict[source_id]  # node_id: from 0 to 1311; content {node_id:[node_id1, node_id2]...}
-    first_tree_id = str(node_id) + '_0'
-    tweet2tree_id_dict[source_id] = first_tree_id
 
-    record_num = 0
-    record_dict = dict()
-    write_tweet_set = set()
-    write_tweet_set.add(source_id)
 
-    with open(f_path, 'r', encoding='utf-8') as fr, open(fout_path, 'w', encoding='utf-8') as fw:
-        # fw.write('[user_id, tweet_id, text]\n')   # todo: I have delete all titles!
+tree_tree_dir = pth.join('../datasets/twitter16/raw_data/tree_tree')
+tweet2mat_dict = read_dict_from_json('../datasets/twitter16/raw_data/tweet2matrix_idx.json')
+
+
+
+if __name__ == '__main__':
+    tree_id2tweet_dict = dict()
+    tree_dictionary = dict()
+
+    for f in tqdm(os.listdir(tree_tree_dir)):
+        source_id = f.split('.')[0]
+        tree_num = tweet2mat_dict[source_id]
+        tree_id = str(tree_num) + '_0'
+
+        fr = open(pth.join(tree_tree_dir, f), 'r')
         lines = fr.readlines()
-        # get parent_record_dict
-        parent_record_dict = tree_checker.tree_line_checker(lines, source_id)
+        fr.close()
 
-        firstline = lines[0].rstrip()
-        source_user_id, _, source_tweet_id, _ = tree_checker.parse_record(firstline)
-        # first_record = eval(two_list[1])  # TODO: no 'ROOT' in twitter16, thus, please chosse twolist[0]
+        del_edge = set()
+        del_node = set()
+        # build graph
+        parent2child = build_graph(lines, source_id)
+        # print('original p2c', len(parent2child))
+        visit = set()
+        dfs(source_id)
 
-        if str(source_tweet_id) != str(source_id):
-            print('source_id', source_id)
+        for parent, child_list in parent2child.items():
+            if parent not in visit:
+                del_node.add(parent)
+            for child in child_list:
+                if child not in visit:
+                    del_edge.add((parent, child))
 
-    # TODO: in twitter15, the last line is 'over' and the first line contain 'ROOT',
-    #  remember to adapt to the file
-        connection_set = set()
-        tweet2tree_id_dict[source_id] = first_tree_id
+        for (parent, child) in del_edge:
+            parent2child[parent].remove(child)
+        for false_node in del_node:
+            del parent2child[false_node]
 
-        for line in lines:
-            if line is not None:
-                line = line.rstrip()
-                user0, user1, tweet0, tweet1 = tree_checker.parse_record(line)
+        print('p2c after dfs', sum([len(i) for i in parent2child.values()]))
+        length = 0
+        for i, lt in parent2child.items():
+            length += len(lt)
+        if length != len(visit) - 1:
+            raise ValueError('source_id', source_id)
 
-            if tweet0 == tweet1:
+        idx = 0
+        tree_id = str(tree_num) + '_' + str(idx)
+        tree_id2tweet_dict[tree_id] = source_id
+        numbered_list = []
+        numbered_list.append(source_id)  # take record of visited_tree
+
+        local_tweet2tree_id_dict = dict()
+        local_tweet2tree_id_dict[source_id] = str(tree_num) + '_0'
+        for p, child_list in parent2child.items():
+            if p not in numbered_list and p in visit:
+                idx += 1
+                tree_id = str(tree_num) + '_' + str(idx)
+                tree_id2tweet_dict[tree_id] = p
+                numbered_list.append(p)
+
+                local_tweet2tree_id_dict[p] = tree_id
+
+            for child in child_list:
+                if child not in visit or child in numbered_list:
+                    continue
+                idx += 1
+                child_tree_id = str(tree_num) + '_' + str(idx)
+                tree_id2tweet_dict[child_tree_id] = child
+                numbered_list.append(child)
+
+                local_tweet2tree_id_dict[child] = child_tree_id
+
+        print('local_tweet2tree_id_dict', local_tweet2tree_id_dict)
+
+        one_tree_dict = dict()
+        for t, t_list in parent2child.items():
+            if t != source_id and len(t_list) == 0:
                 continue
+            lt = [local_tweet2tree_id_dict[i] for i in t_list]
+            one_tree_dict[local_tweet2tree_id_dict[t]] = lt
 
-            if tweet0 not in parent_record_dict.keys():
-                continue
-            else:
-                if parent_record_dict[tweet0] is True:
-                    connection_set.add((tweet0, tweet1))
-                    if tweet0 not in tweet2tree_id_dict.keys():
-                        record_num += 1
-                        tweet2tree_id_dict[tweet0] = str(node_id) + '_' + str(record_num)
-                    if tweet1 not in tweet2tree_id_dict.keys():
-                        record_num += 1
-                        tweet2tree_id_dict[tweet1] = str(node_id) + '_' + str(record_num)
+        tree_dictionary[tree_num] = one_tree_dict
 
-        tree_connect_dict = {}
-        tree_connect_dict[first_tree_id] = []
-        for pair in connection_set:
-            (i, j) = pair
-            user_id0, text0 = get_tweet_record(tweet0, df, recorded_comments_list)
-            write_rec0 = [user_id0, tweet0, text0]
-            user_id1, text1 = get_tweet_record(tweet1, df, recorded_comments_list)
-            write_rec1 = [user_id1, tweet1, text1]
-            new_line = str(write_rec0) + '->' + str(write_rec1) + '\n'
-            fw.write(new_line)
 
-            i = tweet2tree_id_dict[i]
-            j = tweet2tree_id_dict[j]
-            if i not in tree_connect_dict.keys():
-                tree_connect_dict[i] = []
-            tree_connect_dict[i].append(j)
-        if not tree_connect_dict:
-            tree_connect_dict[first_tree_id] = []
-        tree_dictionary[node_id] = tree_connect_dict
+    tree_id2tweet_dict_path = pth.join('../datasets/twitter16/auxiliary_data/tree2tweet_dict.json')
+    tree_dictionary_path = pth.join('../datasets/twitter16/auxiliary_data/tree_dictionary.json')
 
-tools.save_dict_to_json(tree_dictionary, tree_dictionary_save_path)
-tools.iterable2txt(tweet2tree_id_dict, tweet2tree_id_path)
+    save_dict_to_json(tree_id2tweet_dict, tree_id2tweet_dict_path)
+    save_dict_to_json(tree_dictionary, tree_dictionary_path)
 
-print("--------------------finish task1 ----------------------------")
+    output_comments_text_path = pth.join('../load_data16/comments_text.csv')
+    input_comments_text_dir = pth.join('../datasets/twitter16/processed_data/processed_tweet_profile')
 
-with open(output_comments_text_path, 'w', encoding='utf-8', newline='') as wcsv:
-    csv_write = csv.writer(wcsv)
-    csv_write.writerow(['tree_id', 'tweet_id', 'text'])
+    with open(output_comments_text_path, 'w', encoding='utf-8', newline='') as wcsv:
+        csv_write = csv.writer(wcsv)
+        csv_write.writerow(['tree_id', 'tweet_id', 'text'])
 
-    for tweet_id, tree_id in tweet2tree_id_dict.items():
-        if tree_id.split('_')[1] == '0':  # is source, change recorded_list and df
-            node_id = tree_id.split('_')[0]
-            text_content = pd.read_csv(pth.join(input_comments_text_dir, tweet_id + '.csv'), encoding='utf-8')
-            df = pd.DataFrame(text_content)
-            df = df.where(df.notnull(), None)
-            recorded_comments_list = df['tweet_id'].astype(str).tolist()
+        for tree_id, tweet_id in tqdm(tree_id2tweet_dict.items()):
+            if tree_id.split('_')[1] == '0':  # is source, change recorded_list and df
+                node_id = tree_id.split('_')[0]
+                text_content = pd.read_csv(pth.join(input_comments_text_dir, tweet_id + '.csv'), encoding='utf-8')
+                df = pd.DataFrame(text_content)
+                df = df.where(df.notnull(), None)
+                recorded_comments_list = df['tweet_id'].astype(str).tolist()
 
-        t_id, text = get_tweet_record(tweet_id, df, recorded_comments_list)
-        newrow = [tree_id, t_id, text]
-        # print(newrow)
-        csv_write.writerow(newrow)
+            t_id, text = get_tweet_record(tweet_id, df, recorded_comments_list)
+            newrow = [tree_id, t_id, text]
+            # print(newrow)
+            csv_write.writerow(newrow)
 
-print('write to {}'.format(output_comments_text_path))
-print("------------------finish task2--------------------")
-
-# print(len(tweet2tree_id_dict))
-# print("abnormal_count: {}".format(abnormal_count))
-# print("abnormal_list:{}".format(abnormal_list))
+    print('write to {}'.format(output_comments_text_path))
+    print("------------------finish task2--------------------")

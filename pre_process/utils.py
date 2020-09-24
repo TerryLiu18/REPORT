@@ -9,7 +9,7 @@ from time import sleep
 
 parser = argparse.ArgumentParser(description='choose dataset: "twitter15" or "twitter16"')
 parser.add_argument('--dataset', type=str, help='choose dataset folder', default='twitter16')
-parser.add_argument('--filter', type=int, help='filter users whose appearance < n in graph', default=4)
+parser.add_argument('--filter', type=int, help='filter users whose appearance < n in graph', default=5)
 args = parser.parse_args()
 dataset_name = args.dataset
 filter_num = args.filter
