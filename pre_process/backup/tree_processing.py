@@ -14,24 +14,24 @@ from pre_process import tools
 from pre_process import tree_checker
 from time import sleep
 
-if not pth.isdir('../datasets/twitter16/processed_data/processed_tweet_profile'):
-    os.mkdir(pth.join('../datasets/twitter16/processed_data/processed_tweet_profile'))
+if not pth.isdir('../../datasets/twitter16/processed_data/processed_tweet_profile'):
+    os.mkdir(pth.join('../../datasets/twitter16/processed_data/processed_tweet_profile'))
 
-if not pth.isdir('../datasets/twitter16/processed_data/processed_tree_tree'):
-    os.mkdir(pth.join('../datasets/twitter16/processed_data/processed_tree_tree'))
+if not pth.isdir('../../datasets/twitter16/processed_data/processed_tree_tree'):
+    os.mkdir(pth.join('../../datasets/twitter16/processed_data/processed_tree_tree'))
 
-output_tree_structure_dir = pth.join('../datasets/twitter16/processed_data/processed_tweet_tree')
+output_tree_structure_dir = pth.join('../../datasets/twitter16/processed_data/processed_tweet_tree')
 if not pth.exists(output_tree_structure_dir):
     os.mkdir(output_tree_structure_dir)
 
-tweet2tree_id_path = pth.join('../datasets/twitter16/processed_data/tweet2tree_id_dict.txt')
+tweet2tree_id_path = pth.join('../../datasets/twitter16/processed_data/tweet2tree_id_dict.txt')
 tweet2tree_id_dict = dict()   # this is the dict between tree_id
 
 
-tree_dictionary_save_path = pth.join('../load_data16/backup/tree_dictionary_backup.json')
-input_comments_text_dir = pth.join('../datasets/twitter16/processed_data/processed_tweet_profile')
-output_tree_structure_dir = pth.join('../datasets/twitter16/processed_data/processed_tweet_tree')
-output_comments_text_path = pth.join('../load_data16/comments_text.csv')
+tree_dictionary_save_path = pth.join('../../load_data16/backup/tree_dictionary_backup.json')
+input_comments_text_dir = pth.join('../../datasets/twitter16/processed_data/processed_tweet_profile')
+output_tree_structure_dir = pth.join('../../datasets/twitter16/processed_data/processed_tweet_tree')
+output_comments_text_path = pth.join('../../load_data16/comments_text.csv')
 """
 user_id, tweet_id, time -> ...
 ['ROOT', 'ROOT', '0.0']->['139255910', '356268980211687424', '0.0']
@@ -64,12 +64,12 @@ def get_tweet_record(tweet_id, df, recorded_list):
 counter = 0
 abnormal_count = 0
 abnormal_list = []
-input_tree_structure_dir = pth.join('../datasets/twitter16/raw_data/tree_tree')
+input_tree_structure_dir = pth.join('../../datasets/twitter16/raw_data/tree_tree')
 f_list = os.listdir(input_tree_structure_dir)
 
 tree_dictionary = {}
 
-tweet2node_dict = tools.read_dict_from_json(pth.join('../load_data16/tweet2node_dict.json'))
+tweet2node_dict = tools.read_dict_from_json(pth.join('../../load_data16/tweet2node_dict.json'))
 
 for file in tqdm(f_list):
     source_id = file.split('.')[0]

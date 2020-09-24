@@ -149,7 +149,7 @@ class TreeGCN(nn.Module):
         for num_batch in range(batch_size):
             index = torch.eq(indices, num_batch)
             root_extend[index] = x2[num_batch]
-        x = torch.cat((x, root_extend), 1)
+        x = torch.cat((x,root_extend), 1)
 
         # x -> [batch_size, embedding_size(hidden_size2)] node * embedding
         if self.direction == 'td':
