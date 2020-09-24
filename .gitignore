@@ -11,6 +11,9 @@
 /pre_process/backup/
 /pretrained_dataset/
 /model_ensemble16/*.xml
+/model_ensemble16/.idea
+/pre_process/__pycache__
+/pre_process/backup
 /model_ensemble/__pycache__/
 /model_graph2tree/__pycache__/
 /model_tree2graph/__pycache__/
