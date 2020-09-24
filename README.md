@@ -35,37 +35,24 @@ script:
         pip install torch-geometric
         # change 'cu102' to 'cpu' or 'cu101' or others depending on your PyTorch installation. 
 
-###### usage
-1. to make all route available in the repo, please make sure opening this project as name: 'MyGAT',
-
-        project_name = 'MyGAT'
-        loc = os.path.abspath(os.path.dirname(__file__)).split(project_name)[0]
-        root_path = pth.join(loc, project_name) 
-
-2. run **utils.py** to get some auxiliary files
-
-3. run **user_profile_processing.py** and **tweet_profile_processing.py** to get processed files and word sets. 
-
-
 ###### dataset
 all data are put in **datasets/**,
 complete dataset is available at: https://www.dropbox.com/home/FakeNew2020/datasets
 
 ##### 
 
-#### Steps for pre_processing:
-not complete yet
 
-0. all_user_stat.py -> all_user_info.csv<br>
-1. python utils.py<br>
-2. python user_processing.py<br>
-3. python tweet_processing.py<br>
-4. python tree_processing.py<br>
-5. python build_graph_connection.py<br>
-6. python build_tree_connection.py<br>
+
+#### Steps for pre_processing:
+
+0. python ./pre_process/tree_operation.py  to split raw data to tree_tree and graph_tree<br>
+1. python ./../../raw_data/all_user_stat.py -> all_user_info.csv<br> to prepare for graph build and eliminate isolated tree<br>
+2. python utils.py  get filtered user profile <br>
+3. python user_processing.py<br>
+4. python tweet_processing.py<br>
+5. python tree_processing.py<br>
+6. python build_graph_connection.py<br>
 7. python word_mapping.py<br>
 
-check_connection<br>
+check_connection.py to see whether there is isolated tree<br>
 
-
-8. add add_label.py in load_data{}<br>
