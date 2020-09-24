@@ -1,6 +1,6 @@
 # ParallelGCN
 
-This is the HierarchyGCN code for fake news detection. We are currently using **twitter16 dataset**
+This is the ParallelGCN code for fake news detection. We are currently using **twitter16 dataset**
 
 ### Current Structure:
 Project structures of this repo are listed in project_structure.txt
