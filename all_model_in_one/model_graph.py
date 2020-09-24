@@ -89,9 +89,9 @@ class GraphGCN(nn.Module):
 
 class Net(nn.Module):
     """docstring for ClassName"""
-    def __init__(self, args, tweet_embedding_matrix, direction='td'):
+    def __init__(self, args, tweet_embedding_matrix):
         super(Net, self).__init__()
-        self.direction = direction
+        self.direction = args.direction
 
         self.graph_hidden_size1 = args.graph_hidden_size1
         self.graph_hidden_size2 = args.graph_hidden_size2

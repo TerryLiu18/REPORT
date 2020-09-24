@@ -1,68 +1,20 @@
-import pandas as pd
+import time
+import random
 import torch
+import util
+import numpy as np
+
+import pandas as pd
+import os.path as pth
+
 from torch.utils.data import Dataset
 from torch.utils.data import DataLoader
 from collections import OrderedDict
-import os.path as pth
-import util
-import time
-from time import sleep
 from torch.utils.data.sampler import SubsetRandomSampler
-import numpy as np
-import random
+from loaddata_process import load_data_process
 
-
-pd.set_option('display.max_columns', None)
-# show all rows
-pd.set_option('display.max_rows', None)
-pd.set_option('max_colwidth', 120)
-
-SOURCE_TWEET_NUM = 790
-
-# prepare df for acceleration
-tweet_path2 = pth.join('../load_data16/comments_text_encode3.csv')
-#tweet_path2 = pth.join('../load_data16/comments_text_encode3.csv')
-
-tree_dict_path = pth.join('../load_data16/tree_dictionary.json')
-# tree_dict_path = pth.join('../load_data16/tree_dictionary.json')
-
-# select source tweet
-source_tree_id_list = [str(node) + '_0' for node in list(range(SOURCE_TWEET_NUM))]
-tweet_df = pd.read_csv(tweet_path2, index_col=0)
-# print(tweet_df.head(10))
-tweet_df['text'] = tweet_df['text'].apply(lambda text: eval(text))
-source_tweet_df = tweet_df[tweet_df['tree_id'].isin(source_tree_id_list)]
-source_tweet_df.insert(0, 'node_id', range(SOURCE_TWEET_NUM))  # range(1310))
-source_tweet_df = source_tweet_df.reset_index()
-source_tweet_df = source_tweet_df.drop('index', axis=1)
-# print("-"*69)
-# print(source_tweet_df.head(10))
-df_labels = source_tweet_df['label']
-index2label = df_labels.to_dict()
-
-# print(source_tweet_df.head(30))
-tweet_df = tweet_df.set_index('tree_id')   # can not switch sequence here
-
-tree_edge_dict = util.read_dict_from_json(tree_dict_path)  # dictionary
-df_len = source_tweet_df.shape[0]
-# user_filepath2 = pth.join('../load_data16/filtered_user_profile_encode2.csv')
-user_filepath2 = pth.join('../load_data16/filtered_user_profile3_encode2.csv')
-# user_filepath2 = pth.join('../load_data16/filtered_user_profile5_encode2.csv')
-
-u_df = pd.read_csv(user_filepath2)[['node_id', 'statuses_count', 'favourites_count',
-       'listed_count', 'followers_count', 'friends_count', 'text', 'year',
-       'month', 'day', 'hour']].set_index('node_id')
-u_df['text'] = u_df['text'].apply(lambda text: eval(text))
-# print(u_df.head())
-# print(u_df.iloc[1310])
-
-"""
-adjdict: {'1':[1311,1312,1313], '1311':[1], '1312':[1], '1313':[1]}
-"""
-# graph_connection_path = '../load_data16/graph_connections.json'
-graph_connection_path = '../load_data16/graph_connections3.json'
-# graph_connection_path = '../load_data16/graph_connections5.json'
-adjdict = util.read_dict_from_json(pth.join(graph_connection_path))
+# tweet_df, u_df, source_tweet_df, tree_edge_dict, SOURCE_TWEET_NUM, adjdict = \
+#     _load_data_preprocess('twitter16', user_filter=4)
 
 
 def tree2num(tree_id) -> int:
@@ -78,8 +30,7 @@ class TwitterDataset(Dataset):
     getitem: 1. source_tweet info: (feature, label)
              2. tweet_tree info: (connections, feature, label)
     """
-    def __init__(self, tweet_df=tweet_df, source_tweet_df=source_tweet_df,
-                 tree_edge_index=tree_edge_dict, df_length=df_len):
+    def __init__(self, tweet_df, source_tweet_df, tree_edge_index, df_length):
         self.tweet_df = tweet_df
         self.source_tweet_df = source_tweet_df
         self.tree_edge_index = tree_edge_index
@@ -103,9 +54,8 @@ class TwitterDataset(Dataset):
         :param index:
         :return:
         """
-        # print("'get_tweet_tree', start timing")
-        # tweet_node_id = index
-        # get edge_index for a tree
+
+        SOURCE_TWEET_NUM = self.len
         e_index = self.tree_edge_index[str(index)]
         tree_edge_dict = e_index
 
@@ -114,12 +64,9 @@ class TwitterDataset(Dataset):
             max_idx = 0   # tree only has one node
         else:
             for c_list in e_index.values():   # c_list: ['0_1', '0_2']
-                # print("c_list: {}".format(c_list))
                 last_child = tree2num(c_list[-1])
                 if last_child > max_idx:
                     max_idx = last_child
-        # print("max_idx of index{}: {}".format(index, max_idx))
-        # tree_size = max_idx + 1
 
         # tree_tweet_df = self.tweet_df.set_index('tree_id')
         start_index = str(index) + '_0'
@@ -204,14 +151,11 @@ def twitter_collate(batch):
 
     labels = []
     graph_edge_index = []
-    tree_edge_index_list = []
     tree_feature_list = []
-    max_idx_list = []
     bias = len(batch)
     merged_tree_edge_index = []
     new_index = 0
     sigma_max_idx = 0
-    root2children = dict()
     indices = []
 
     for graph_info, (tree_edge_index, tree_feature, max_idx) in batch:
@@ -241,12 +185,7 @@ def twitter_collate(batch):
         loss_tweet_map[str(t)] = loss_tweet_idx
         loss_tweet_idx += 1
         labels.append(graph_info['label'])
-        # u_list = adjdict[str(t)]
-        try:
-            u_list = adjdict[str(t)]
-        except KeyError:
-            print('t', t)
-            raise Exception(KeyError)
+        u_list = adjdict[str(t)]
 
         for u in u_list:
             if str(u) not in user_map:
@@ -256,9 +195,7 @@ def twitter_collate(batch):
             graph_edge_index.append([user_map[str(u)], loss_tweet_map[str(t)]])
     ## end for
     # print("sigma_max_idx", sigma_max_idx+batch_size)
-    indices = list(range(0,batch_size)) + indices
-    # print(indices)
-    loss_tweets_cnt = len(batch)
+    indices = list(range(0, batch_size)) + indices
     bias += len(user_map)
 
     for u in user_map:
@@ -306,8 +243,9 @@ def twitter_collate(batch):
             torch.LongTensor(labels), torch.LongTensor(indices)
 
 
-def get_dataloader(batch_size=64, seed=0):
-    tweetdata = TwitterDataset()
+def get_dataloader(tweet_df, source_tweet_df, tree_edge_dict, SOURCE_TWEET_NUM, batch_size=64, seed=0):
+    tweetdata = TwitterDataset(tweet_df=tweet_df, source_tweet_df=source_tweet_df,
+                 tree_edge_index=tree_edge_dict, df_length=SOURCE_TWEET_NUM)
     indices = list(range(SOURCE_TWEET_NUM))
     random.seed(seed)
     random.shuffle(indices)
@@ -318,13 +256,14 @@ def get_dataloader(batch_size=64, seed=0):
     
     train_data = DataLoader(tweetdata,batch_size=batch_size,sampler=train_sampler,collate_fn=twitter_collate,num_workers=5)
     test_data = DataLoader(tweetdata,batch_size=batch_size,sampler=test_sampler,collate_fn=twitter_collate,num_workers=5)
-    
     return train_data, test_data
 
 
 if __name__ == "__main__":
     start = time.time()
-    train_data,test_data = get_dataloader()
+    tweet_df, u_df, source_tweet_df, tree_edge_dict, SOURCE_TWEET_NUM, adjdict = \
+    load_data_process('twitter16', user_filter=4)
+    train_data, test_data = get_dataloader(tweet_df, source_tweet_df, tree_edge_dict, SOURCE_TWEET_NUM)
     for x in train_data:
         # loss_tweets_cnt, labels, graph_edge_index, graph_loss_feature, user_feature, graph_no_loss_feature, \
         # merged_tree_edge_index, merged_tree_feature

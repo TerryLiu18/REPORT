@@ -18,13 +18,17 @@ from torch.autograd import Variable
 from torch.utils.tensorboard import SummaryWriter
 
 from util import str2bool
-from dataset import get_dataloader
+from loaddata_process import load_data_process
 from GloveEmbed import _get_embedding
 from early_stopping import EarlyStopping
+from dataset import get_dataloader
+
 
 ## add args
 parser = argparse.ArgumentParser(description='GAT for fake news detection')
 parser.add_argument('--model', default='ensemble', type=str, help='ensemble/graph2tree/tree2graph/tree/graph')
+parser.add_argument('--dataset_name', default='twitter16', type=str, help='twitter15/twitter16')
+parser.add_argument('--user_filter', default='4', type=str, help='3/4/5')
 parser.add_argument('--train', default=True, type=str2bool, help='train or traverse')
 parser.add_argument('--patience', default=6, type=int, help='how long to wait after last time validation loss improved')
 parser.add_argument('--freeze', default=False, type=str2bool, help='embedding freeze or not')
@@ -54,6 +58,11 @@ parser.add_argument('--ckpt_name', default='last', type=str, help='load previous
 args = parser.parse_args()
 args.user_out_size = int(args.tweet_embed_size/2)
 # args.graph_hidden_size2 = args.tweet_embed_size
+
+# tweet_df, u_df, source_tweet_df, tree_edge_dict, SOURCE_TWEET_NUM, adjdict = \
+#     load_data_process(dataset_name=args.dataset_name, user_filter=args.user_filter)
+
+
 
 # import model
 if args.model == 'ensemble':
@@ -122,6 +131,10 @@ def _train_model():
     json.dump(args.__dict__, fw_log, indent=2)
     fw_log.write('\n')
 
+    # take record of parameters
+    parameter_record = pth.join('./parameter_record.md')   
+    md = open(parameter_record, 'a') 
+
     model.train()
     global_step = 0
     max_iter = len(train_loader) * args.epoches
@@ -177,6 +190,14 @@ def _train_model():
             model.train()
     fw_log.write("BEST Accuracy: {:.4f}".format(early_stopping.best_accs))
     print("BEST Accuracy: {:.4f}".format(early_stopping.best_accs))
+
+    md_write = '|{}|  {} | {} | {} | {} | {} | {} | {:.4f} |\n'.format(
+        str(time), str(args.dataset_name), str(args.user_filter),
+         str(args.model), str(args.batch_size), str(args.lr), 
+         str(args.seed), early_stopping.best_accs
+    )
+    md.write(md_write)
+    md.close()
     fw_log.close()
     writer.close()
     
@@ -223,8 +244,12 @@ if __name__ == '__main__':
     tweet_embedding_matrix = _get_embedding(glove_file, tweets_word_map, embed_dim)
 
     print("***end of load pretrain embedding***")
-    train_loader, test_loader = get_dataloader(args.batch_size, args.seed)                     # data loader
-    model = Net(args, tweet_embedding_matrix, direction=args.direction) # load model
+    train_loader, test_loader = get_dataloader()
+
+    # train_loader, test_loader = dataset_new.get_dataloader(
+    #     tweet_df, source_tweet_df, tree_edge_dict, SOURCE_TWEET_NUM, args.batch_size, args.seed
+    # )                     # data loader
+    model = Net(args, tweet_embedding_matrix) # load model
     model.to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, betas=(0.9, 0.999), weight_decay=args.weight_decay)
     loss_fun = nn.CrossEntropyLoss()

@@ -23,7 +23,7 @@ def init_weights(m):
 
 class TreeGCN(nn.Module):
     """GAT for tree"""
-    def __init__(self, args, tweet_embedding_matrix, text_input_size=100, hidden_size1=100, hidden_size2=100,hidden_size3=100):
+    def __init__(self, args, tweet_embedding_matrix, text_input_size=100, hidden_size1=100, hidden_size2=100):
         super(TreeGCN, self).__init__()
         # print('batch size', args.batch_size)
         self.batch_size = args.batch_size #batch_size
@@ -80,27 +80,25 @@ class TreeGCN(nn.Module):
 
 class Net(nn.Module):
     """docstring for ClassName"""
-    def __init__(self, args, tweet_embedding_matrix, user_embedding_matrix):
+    def __init__(self, args, tweet_embedding_matrix):
         super(Net, self).__init__()
-        self.hidden_size1 = args.hidden_size1
-        self.hidden_size2 = args.hidden_size2
-        self.hidden_size3 = args.hidden_size3
+        self.direction = args.direction
+        self.tree_hidden_size1 = args.tree_hidden_size1
+        self.tree_hidden_size2 = args.tree_hidden_size2
 
         self.graph_hidden_size1 = args.graph_hidden_size1
         self.graph_hidden_size2 = args.graph_hidden_size2
-        self.graph_hidden_size3 = args.graph_hidden_size3
 
         self.num_layer = 2
         self.text_input_size = args.embed_dim
         self.batch_size = args.batch_size
         self.args = args
         ## model
-        self.TreeGCN = TreeGCN(self.args, tweet_embedding_matrix, self.text_input_size, self.hidden_size1, self.hidden_size2, self.hidden_size3)
-        self.fc = nn.Linear(self.hidden_size2 + self.hidden_size1, 4)
+        self.TreeGCN = TreeGCN(self.args, tweet_embedding_matrix, self.text_input_size, self.tree_hidden_size1, self.tree_hidden_size2)
+        self.fc = nn.Linear(self.tree_hidden_size2 + self.tree_hidden_size1, 4)
         
 
-    def forward(self, user_text, user_feats, graph_node_features, graph_edge_index, merged_tree_feature, merged_tree_edge_index, indices):
-        ##model(user_text, user_feats, graph_node_features, graph_edge_index, merged_tree_feature, merged_tree_edge_index,indx)
+    def forward(self, user_feats, graph_node_features, graph_edge_index, merged_tree_feature, merged_tree_edge_index, indices):
         child_embed = self.TreeGCN(merged_tree_feature, merged_tree_edge_index, indices)
         mean_embed = scatter_mean(child_embed, indices, dim=0) ## nodes * embedding
         out_y  = self.fc(mean_embed)

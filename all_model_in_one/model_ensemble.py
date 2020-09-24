@@ -163,9 +163,9 @@ class TreeGCN(nn.Module):
 
 class Net(nn.Module):
     """docstring for ClassName"""
-    def __init__(self, args, tweet_embedding_matrix, direction='td'):
+    def __init__(self, args, tweet_embedding_matrix):
         super(Net, self).__init__()
-        self.direction = direction
+        self.direction = args.direction
         self.tree_hidden_size1 = args.tree_hidden_size1
         self.tree_hidden_size2 = args.tree_hidden_size2
         # self.tree_hidden_size3 = args.tree_hidden_size3
