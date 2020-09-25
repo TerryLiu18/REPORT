@@ -16,6 +16,7 @@ from loaddata_process import load_data_process
 # tweet_df, u_df, source_tweet_df, tree_edge_dict, SOURCE_TWEET_NUM, adjdict = \
 #     _load_data_preprocess('twitter16', user_filter=4)
 
+u_df, adjdict, source_tweet_df = None, None, None
 
 def tree2num(tree_id) -> int:
     """
@@ -141,6 +142,10 @@ def twitter_collate(batch):
     batch_size->batch_size+new_user_idx-1: user
     batch_size+new_user_idx->batch_size+new_user_idx+found_tweet: no loss tweets
     """
+    global adjdict
+    global u_df
+    global source_tweet_df
+
     # start1 = time.time()
     loss_tweet_map = OrderedDict()
     user_map = OrderedDict()
@@ -243,8 +248,15 @@ def twitter_collate(batch):
             torch.LongTensor(labels), torch.LongTensor(indices)
 
 
-def get_dataloader(tweet_df, source_tweet_df, tree_edge_dict, SOURCE_TWEET_NUM, batch_size=64, seed=0):
-    tweetdata = TwitterDataset(tweet_df=tweet_df, source_tweet_df=source_tweet_df,
+def get_dataloader(tweet_df, source_tweet_df_para, tree_edge_dict, SOURCE_TWEET_NUM, u_df_para, adjdict_para, batch_size=64, seed=0):
+    global u_df
+    global adjdict
+    global source_tweet_df
+
+    u_df = u_df_para
+    adjdict = adjdict_para
+    source_tweet_df = source_tweet_df_para
+    tweetdata = TwitterDataset(tweet_df=tweet_df, source_tweet_df=source_tweet_df_para,
                  tree_edge_index=tree_edge_dict, df_length=SOURCE_TWEET_NUM)
     indices = list(range(SOURCE_TWEET_NUM))
     random.seed(seed)

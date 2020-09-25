@@ -21,7 +21,7 @@ from util import str2bool
 from loaddata_process import load_data_process
 from GloveEmbed import _get_embedding
 from early_stopping import EarlyStopping
-from dataset import get_dataloader
+from dataset_new import get_dataloader
 
 
 ## add args
@@ -244,8 +244,10 @@ if __name__ == '__main__':
     tweet_embedding_matrix = _get_embedding(glove_file, tweets_word_map, embed_dim)
 
     print("***end of load pretrain embedding***")
-    train_loader, test_loader = get_dataloader()
+    # train_loader, test_loader = get_dataloader()
 
+    tweet_df, u_df, source_tweet_df, tree_edge_dict, SOURCE_TWEET_NUM, adjdict = load_data_process(args.dataset_name, args.user_filter)
+    train_loader, test_loader = get_dataloader(tweet_df, source_tweet_df, tree_edge_dict, SOURCE_TWEET_NUM, u_df, adjdict, args.batch_size, args.seed)
     # train_loader, test_loader = dataset_new.get_dataloader(
     #     tweet_df, source_tweet_df, tree_edge_dict, SOURCE_TWEET_NUM, args.batch_size, args.seed
     # )                     # data loader
