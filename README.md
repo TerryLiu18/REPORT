@@ -51,8 +51,10 @@ complete dataset is available at: https://www.dropbox.com/home/FakeNew2020/datas
 3. python user_processing.py<br>
 4. python tweet_processing.py<br>
 5. python tree_processing.py<br>
-6. python build_graph_connection.py<br>
-7. python word_mapping.py<br>
+6. python word_mapping.py<br>
+7. python build_graph_connection.py<br>
 
+get more 'user_filter' dataset:<br>
+re-run utils.py, user_processing.py, word_mapping.py and build_graph_connection.py<br>
 check_connection.py to see whether there is isolated tree<br>
 
