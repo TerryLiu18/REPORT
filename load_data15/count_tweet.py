@@ -1,5 +1,5 @@
-from pre_process.tools import read_dict_from_json, save_dict_to_json
-
+from tools import read_dict_from_json, save_dict_to_json
+from task import FILTER_NUM, SOURCE_TWEET_NUM
 
 def get_tail(num):
     """
@@ -32,29 +32,28 @@ def sort_record(rec_list):
     return sorted_record_list
 
 
-# no_sort_tree_dict = read_dict_from_json('tree_dictionary_no_sort.json')
-# for num in no_sort_tree_dict.keys():
-#     one_tree_record = no_sort_tree_dict[num]
-#     for node_id, child_list in one_tree_record.items():
-#         if len(child_list) != 0 :
-#             child_list.sort(key=lambda i: int(i.split('_')[1]))
-#
-#
+no_sort_tree_dict = read_dict_from_json('tree_dictionary.json')
+for num in no_sort_tree_dict.keys():
+    one_tree_record = no_sort_tree_dict[num]
+    for node_id, child_list in one_tree_record.items():
+        if len(child_list) != 0:
+            child_list.sort(key=lambda i: int(i.split('_')[1]))
+save_dict_to_json(no_sort_tree_dict, 'tree_dictionary.json')
+
 
 tweet_num = 0
 tweet_set = set()
-tree_dict = read_dict_from_json('../datasets/twitter16/auxiliary_data/tree_dictionary.json')
+tree_dict = read_dict_from_json('tree_dictionary.json')
 for num in tree_dict.keys():
     for node_id, child_list in tree_dict[num].items():
         tweet_set.add(node_id)
         if len(child_list) != 0:
             tweet_set.update(child_list)
         tweet_num += len(child_list)
-tweet_num += 790
+tweet_num += SOURCE_TWEET_NUM
 print(tweet_num)
 
 import pandas as pd
-
 df = pd.read_csv('comments_text_encode1.csv')
 tweet_list = df['tree_id'].tolist()
 tweet_set2 = set(tweet_list)
