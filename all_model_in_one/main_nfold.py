@@ -20,18 +20,18 @@ from torch.utils.tensorboard import SummaryWriter
 from util import str2bool
 from GloveEmbed import _get_embedding
 from early_stopping import EarlyStopping
-from dataset import get_dataloader, data_split
+from dataset_nfold import get_dataloader, data_split
 from evaluate import evaluation4class
 
 ## add args
 parser = argparse.ArgumentParser(description='GAT for fake news detection')
 parser.add_argument('--model', default='ensemble', type=str, help='ensemble/graph2tree/tree2graph/tree/graph')
 parser.add_argument('--train', default=True, type=str2bool, help='train or traverse')
-parser.add_argument('--patience', default=10, type=int, help='how long to wait after last time validation loss improved')
+parser.add_argument('--patience', default=10, type=int, help='how long to wait after last time accuracy improved')
 parser.add_argument('--freeze', default=False, type=str2bool, help='embedding freeze or not')
 parser.add_argument('--load_ckpt', default=False, type=str2bool, help='load checkpoint')
 parser.add_argument('--seed', default=0, type=int, help='random seed')
-parser.add_argument('--gpu', default=1, type=int, help='gpu id')
+parser.add_argument('--gpu', default=2, type=int, help='gpu id')
 parser.add_argument('--epoches', default=90, type=int, help='maximum training epoches')
 parser.add_argument('--batch_size', default=64, type=int, help='batch size')
 parser.add_argument('--dropout', default=0.3, type=float, help='drop out rate')
@@ -82,6 +82,7 @@ else:
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print("device: {}{} ".format(device, str(args.gpu)))
+print("seed: " + str(args.seed))
 
 def _load_word2index(word_file):
     with open(word_file) as jsonfile:
@@ -90,7 +91,7 @@ def _load_word2index(word_file):
     vocab_size = len(word_map)
     return word_map, vocab_size
 
-def _save_checkpoint(model, global_step, epoch):
+def _save_checkpoint(model, global_step, epoch, optimizer):
     os.makedirs(args.ckpt_dir, exist_ok=True)
     save_dir = os.path.join(args.ckpt_dir, args.ckpt_name)
     checkpoint_dict = {'model_state': model.state_dict(), 'optim_state': optimizer.state_dict(), 'global_step':global_step, 'curr_epoch': epoch}
@@ -119,17 +120,19 @@ def _compute_accy_count(y_pred, y_labels):
 def _compute_accuracy(y_pred, y_labels):
     return 1.0*y_pred.eq(y_labels).sum().item()/y_labels.size(0)
     
-def _train_model(global_step, train_loader, model):
-    time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    os.makedirs('logs/', exist_ok=True)
-    log_file = 'logs/' + time + 'args.log'
-    fw_log = open(log_file, "w")
-    json.dump(args.__dict__, fw_log, indent=2)
-    fw_log.write('\n')
+# def _train_model(global_step, train_loader, model):
+def _train_model(train_indices, test_indices):
+    global accs
+    global f1
+    global f2
+    global f3
+    global f4
 
-    # take record of parameters
-    parameter_record = pth.join('./parameter_record.md')   
-    md = open(parameter_record, 'a') 
+    fw_log = open(log_file, "a")
+    model = Net(args, tweet_embedding_matrix) # load model
+    model.to(device)
+    optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, betas=(0.9, 0.999), weight_decay=args.weight_decay)
+    loss_fun = nn.CrossEntropyLoss()
 
     model.train()
     global_step = 0
@@ -176,27 +179,27 @@ def _train_model(global_step, train_loader, model):
         #     _save_checkpoint(model, global_step, epoch)
         # if (epoch+1) % 2 == 0:
             # test_accy = _testing_model(test_loader,model)
-        Acc_all, Acc1, Prec1, Recll1, F1, Acc2, Prec2, Recll2, F2, Acc3, Prec3, Recll3, F3, Acc4, Prec4, Recll4, F4 = _testing_model(test_loader)
+        Acc_all, Acc1, Prec1, Recll1, F1, Acc2, Prec2, Recll2, F2, Acc3, Prec3, Recll3, F3, Acc4, Prec4, Recll4, F4 = _testing_model(model, test_loader)
         early_stopping(Acc_all, F1, F2, F3, F4)
         fw_log.write('epoch: {} testing accuracy: {:4f}\n'.format(epoch+1, Acc_all))
         fw_log.flush()
         if early_stopping.early_stop:
-            _save_checkpoint(model, global_step, epoch) #### false
+            _save_checkpoint(model, global_step, epoch, optimizer) #### false
             print('early stop!')
             break
         model.train()
+    accs.append(early_stopping.best_accs)
+    f1.append(early_stopping.F1)
+    f2.append(early_stopping.F2)
+    f3.append(early_stopping.F3)
+    f4.append(early_stopping.F4)
     fw_log.write("BEST Accuracy: {:.4f}".format(early_stopping.best_accs))
     print("BEST Accuracy: {:.4f}".format(early_stopping.best_accs))
 
-    md_write = '|{}| gpu: {} | {} | {} | {} | seed: {} | direction: {} | acc: {:.4f} | F1: {:.4f} | F2: {:.4f} | F3: {:.4f} | F4: {:.4f} | \n'.format(
-        str(time), str(args.gpu), str(args.model), str(args.batch_size), str(args.lr), 
-         str(args.seed), str(args.direction), early_stopping.best_accs, early_stopping.F1, early_stopping.F2, early_stopping.F3, early_stopping.F4)
-    md.write(md_write)
-    md.close()
     fw_log.close()
     writer.close()
     
-def _testing_model(test_loader):
+def _testing_model(model, test_loader):
     model.eval()
     all_pred = []
     all_y = []
@@ -232,7 +235,25 @@ if __name__ == '__main__':
     random.seed(seed)
 
     ## load vocab of tweets
-    TWEETS_WORD_FILE = pth.join('../load_data15_1473/tweets_words_mapping.json')
+    # # origin
+    # TWEETS_WORD_FILE = pth.join('../load_data15_1473/tweets_words_mapping.json')
+    # # 15_10
+    # print("early15_10")
+    # TWEETS_WORD_FILE = pth.join('../load_data15_10/tweets_words_mapping.json')
+    # # 15_20
+    # print("early15_20")
+    # TWEETS_WORD_FILE = pth.join('../load_data15_20/tweets_words_mapping.json')
+    # # 15_30
+    # print("early15_30")
+    # TWEETS_WORD_FILE = pth.join('../load_data15_30/tweets_words_mapping.json')
+    # 15_60
+    print("early15_60")
+    TWEETS_WORD_FILE = pth.join('../load_data15_60/tweets_words_mapping.json')
+    # # 15_90
+    # TWEETS_WORD_FILE = pth.join('../load_data15_90/tweets_words_mapping.json')
+    # # 15_120
+    # TWEETS_WORD_FILE = pth.join('../load_data15_120/tweets_words_mapping.json')
+
     tweets_word_map, _ = _load_word2index(TWEETS_WORD_FILE)
     glove_file = '../glove/glove.twitter.27B.{}d.txt'.format(args.embed_dim)
     embed_dim = args.embed_dim
@@ -241,21 +262,39 @@ if __name__ == '__main__':
     tweet_embedding_matrix = _get_embedding(glove_file, tweets_word_map, embed_dim)
 
     print("***end of load pretrain embedding***")
-    train_indices, test_indices = data_split()
-    # train_loader, test_loader = get_dataloader(args.batch_size, args.seed, train_indices, test_indices)
-    model = Net(args, tweet_embedding_matrix) # load model
-    model.to(device)
-    optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, betas=(0.9, 0.999), weight_decay=args.weight_decay)
-    loss_fun = nn.CrossEntropyLoss()
+    time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    os.makedirs('logs/', exist_ok=True)
+    log_file = 'logs/' + time + 'args.log'
+    fw_log = open(log_file, "w")
+    json.dump(args.__dict__, fw_log, indent=2)
+    fw_log.write('\n')
+    fw_log.close()
+
+    fold1_test, fold1_train, fold2_test, fold2_train, fold3_test, fold3_train,\
+            fold4_test, fold4_train, fold5_test, fold5_train = data_split()
+    accs, f1, f2, f3, f4 = [], [], [], [], []
     global_step = 0
     curr_epoch = 0
-    if args.load_ckpt:
-        model, optimizer, global_step, curr_epoch = _load_checkpoint(global_step,curr_epoch)
-        print("***loading checkpoint successfully***")
-        print("[checkpoint current epoch: {} and step: {}]".format(curr_epoch, global_step))
+    # if args.load_ckpt:
+    #     model, optimizer, global_step, curr_epoch = _load_checkpoint(global_step,curr_epoch)
+    #     print("***loading checkpoint successfully***")
+    #     print("[checkpoint current epoch: {} and step: {}]".format(curr_epoch, global_step))
     print("start training model now")  # train model
     if args.train:
-        _train_model(train_indices, test_indices)
+        _train_model(fold1_train, fold1_test)
+        _train_model(fold2_train, fold2_test)
+        _train_model(fold3_train, fold3_test)
+        _train_model(fold4_train, fold4_test)
+        _train_model(fold5_train, fold5_test)
+        
+        print(accs)
+        parameter_record = pth.join('./parameter_record.md')   
+        md = open(parameter_record, 'a') 
+        md_write = '|{}| gpu: {} | {} | {} | {} | seed: {} | direction: {} | acc: {:.4f} | F1: {:.4f} | F2: {:.4f} | F3: {:.4f} | F4: {:.4f} | \n'.format(
+            str(time), str(args.gpu), str(args.model), str(args.batch_size), str(args.lr), 
+            str(args.seed), str(args.direction), np.mean(accs), np.mean(f1), np.mean(f2), np.mean(f3), np.mean(f4))
+        md.write(md_write)
+        md.close()
     # else:
     #     print("*****testing model now*****")
     #     accy = _testing_model()       

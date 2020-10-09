@@ -11,16 +11,67 @@ from torch.utils.data.sampler import SubsetRandomSampler
 import numpy as np
 import random
 
-# show all rows
+
 pd.set_option('display.max_columns', None)
+# show all rows
 pd.set_option('display.max_rows', None)
 pd.set_option('max_colwidth', 120)
 
-SOURCE_TWEET_NUM = 1472
+# origin
+# SOURCE_TWEET_NUM = 1472
 
-# prepare df for acceleration
-tweet_path2 = pth.join('../load_data15_1473/comments_text_encode3.csv')
-tree_dict_path = pth.join('../load_data15_1473/tree_dictionary.json')
+# tweet_path2 = pth.join('../load_data15_1473/comments_text_encode3.csv')
+# tree_dict_path = pth.join('../load_data15_1473/tree_dictionary.json')
+# user_filepath2 = pth.join('../load_data15_1473/filtered_user_profile2_encode2.csv')
+# graph_connection_path = '../load_data15_1473/graph_connections2.json'
+
+# early detection 10
+# SOURCE_TWEET_NUM = 1255
+# print("early15_10")
+# tweet_path2 = pth.join('../load_data15_10/comments_text_encode3.csv')
+# tree_dict_path = pth.join('../load_data15_10/tree_dictionary.json')
+# user_filepath2 = pth.join('../load_data15_10/filtered_user_profile2_encode2.csv')
+# graph_connection_path = '../load_data15_10/graph_connections2.json'
+
+# early detection 20
+# SOURCE_TWEET_NUM = 1330
+# print("early15_20")
+# tweet_path2 = pth.join('../load_data15_20/comments_text_encode3.csv')
+# tree_dict_path = pth.join('../load_data15_20/tree_dictionary.json')
+# user_filepath2 = pth.join('../load_data15_20/filtered_user_profile2_encode2.csv')
+# graph_connection_path = '../load_data15_20/graph_connections2.json'
+
+# early detection 30
+# SOURCE_TWEET_NUM = 1365
+#print("early15_30")
+#tweet_path2 = pth.join('../load_data15_30/comments_text_encode3.csv')
+#tree_dict_path = pth.join('../load_data15_30/tree_dictionary.json')
+#user_filepath2 = pth.join('../load_data15_30/filtered_user_profile2_encode2.csv')
+#graph_connection_path = '../load_data15_30/graph_connections2.json'
+
+# early detection 60
+SOURCE_TWEET_NUM = 1403
+print("early15_60")
+tweet_path2 = pth.join('../load_data15_60/comments_text_encode3.csv')
+tree_dict_path = pth.join('../load_data15_60/tree_dictionary.json')
+user_filepath2 = pth.join('../load_data15_60/filtered_user_profile2_encode2.csv')
+graph_connection_path = '../load_data15_60/graph_connections2.json'
+
+# early detection 90
+# SOURCE_TWEET_NUM = 1419
+
+# tweet_path2 = pth.join('../load_data15_90/comments_text_encode3.csv')
+# tree_dict_path = pth.join('../load_data15_90/tree_dictionary.json')
+# user_filepath2 = pth.join('../load_data15_90/filtered_user_profile2_encode2.csv')
+# graph_connection_path = '../load_data15_90/graph_connections2.json'
+
+# early detection 120
+# SOURCE_TWEET_NUM = 1428
+
+# tweet_path2 = pth.join('../load_data15_120/comments_text_encode3.csv')
+# tree_dict_path = pth.join('../load_data15_120/tree_dictionary.json')
+# user_filepath2 = pth.join('../load_data15_120/filtered_user_profile2_encode2.csv')
+# graph_connection_path = '../load_data15_120/graph_connections2.json'
 
 # select source tweet
 source_tree_id_list = [str(node) + '_0' for node in list(range(SOURCE_TWEET_NUM))]
@@ -41,8 +92,6 @@ tweet_df = tweet_df.set_index('tree_id')   # can not switch sequence here
 
 tree_edge_dict = util.read_dict_from_json(tree_dict_path)  # dictionary
 df_len = source_tweet_df.shape[0]
-user_filepath2 = pth.join('../load_data15_1473/filtered_user_profile3_encode2.csv')
-
 
 u_df = pd.read_csv(user_filepath2)[['node_id', 'statuses_count', 'favourites_count',
        'listed_count', 'followers_count', 'friends_count', 'text', 'year',
@@ -54,7 +103,6 @@ u_df['text'] = u_df['text'].apply(lambda text: eval(text))
 """
 adjdict: {'1':[1311,1312,1313], '1311':[1], '1312':[1], '1313':[1]}
 """
-graph_connection_path = '../load_data15_1473/graph_connections3.json'
 adjdict = util.read_dict_from_json(pth.join(graph_connection_path))
 
 
@@ -197,11 +245,14 @@ def twitter_collate(batch):
 
     labels = []
     graph_edge_index = []
+    tree_edge_index_list = []
     tree_feature_list = []
+    max_idx_list = []
     bias = len(batch)
     merged_tree_edge_index = []
     new_index = 0
     sigma_max_idx = 0
+    root2children = dict()
     indices = []
 
     for graph_info, (tree_edge_index, tree_feature, max_idx) in batch:
@@ -248,6 +299,7 @@ def twitter_collate(batch):
     # print("sigma_max_idx", sigma_max_idx+batch_size)
     indices = list(range(0,batch_size)) + indices
     # print(indices)
+    loss_tweets_cnt = len(batch)
     bias += len(user_map)
 
     for u in user_map:
@@ -288,16 +340,17 @@ def twitter_collate(batch):
     user_feats = user_feature[['statuses_count', 'favourites_count','listed_count', \
                                 'followers_count', 'friends_count','year','month', \
                                 'day', 'hour']].values.tolist()
-    # print('merged_tree_edge_index', len(merged_tree_edge_index))
-    # print('merged_tree_feature', len(merged_tree_feature))
+    
     return torch.LongTensor(graph_node_features), torch.LongTensor(graph_edge_index), \
             torch.LongTensor(user_text), torch.tensor(user_feats, dtype=torch.float32), \
             torch.LongTensor(merged_tree_edge_index), torch.LongTensor(merged_tree_feature), \
             torch.LongTensor(labels), torch.LongTensor(indices)
 
+
 def data_split():
     indices = list(range(SOURCE_TWEET_NUM))
-    train_indices, test_indices = [], []
+    fold1_test, fold1_train, fold2_test, fold2_train, fold3_test, fold3_train,\
+            fold4_test, fold4_train, fold5_test, fold5_train = [], [], [], [], [], [], [], [], [], []
     one = [idx for idx in indices if index2label[idx] == 0]
     two = [idx for idx in indices if index2label[idx] == 1]
     three = [idx for idx in indices if index2label[idx] == 2]
@@ -306,16 +359,85 @@ def data_split():
     random.shuffle(two)
     random.shuffle(three)
     random.shuffle(four)
-    test_indices += one[:int(0.2*len(one))]
-    test_indices += two[:int(0.2*len(two))]
-    test_indices += three[:int(0.2*len(three))]
-    test_indices += four[:int(0.2*len(four))]
-    train_indices += one[int(0.2*len(one)):]
-    train_indices += two[int(0.2*len(two)):]
-    train_indices += three[int(0.2*len(three)):]
-    train_indices += four[int(0.2*len(four)):]
+    len1 = int(len(one) * 0.2)
+    len2 = int(len(two) * 0.2)
+    len3 = int(len(three) * 0.2)
+    len4 = int(len(four) * 0.2)
 
-    return train_indices, test_indices
+    fold1_test += one[:len1]
+    fold1_test += two[:len2]
+    fold1_test += three[:len3]
+    fold1_test += four[:len4]
+    fold1_train += one[len1:]
+    fold1_train += two[len2:]
+    fold1_train += three[len3:]
+    fold1_train += four[len4:]
+
+    fold2_train += one[:len1]
+    fold2_train += one[len1*2:]
+    fold2_train += two[:len2]
+    fold2_train += two[len2*2:]
+    fold2_train += three[:len3]
+    fold2_train += three[len3*2:]
+    fold2_train += four[:len4]
+    fold2_train += four[len4*2:]
+    fold2_test += one[len1:len1*2]
+    fold2_test += two[len2:len2*2]
+    fold2_test += three[len3:len3*2]
+    fold2_test += four[len4:len4*2]
+
+    fold3_train += one[:len1*2]
+    fold3_train += one[len1*3:]
+    fold3_train += two[:len2*2]
+    fold3_train += two[len2*3:]
+    fold3_train += three[:len3*2]
+    fold3_train += three[len3*3:]
+    fold3_train += four[:len4*2]
+    fold3_train += four[len4*3:]
+    fold3_test += one[len1*2:len1*3]
+    fold3_test += two[len2*2:len2*3]
+    fold3_test += three[len3*2:len3*3]
+    fold3_test += four[len4*2:len4*3]
+
+    fold4_train += one[:len1*3]
+    fold4_train += one[len1*4:]
+    fold4_train += two[:len2*3]
+    fold4_train += two[len2*4:]
+    fold4_train += three[:len3*3]
+    fold4_train += three[len3*4:]
+    fold4_train += four[:len4*3]
+    fold4_train += four[len4*4:]
+    fold4_test += one[len1*3:len1*4]
+    fold4_test += two[len2*3:len2*4]
+    fold4_test += three[len3*3:len3*4]
+    fold4_test += four[len4*3:len4*4]
+
+    fold5_train += one[:len1*4]
+    fold5_train += one[len1*5:]
+    fold5_train += two[:len2*4]
+    fold5_train += two[len2*5:]
+    fold5_train += three[:len3*4]
+    fold5_train += three[len3*5:]
+    fold5_train += four[:len4*4]
+    fold5_train += four[len4*5:]
+    fold5_test += one[len1*4:len1*5]
+    fold5_test += two[len2*4:len2*5]
+    fold5_test += three[len3*4:len3*5]
+    fold5_test += four[len4*4:len4*5]
+
+    random.shuffle(fold1_test)
+    random.shuffle(fold1_train)
+    random.shuffle(fold2_test)
+    random.shuffle(fold2_train)
+    random.shuffle(fold3_test)
+    random.shuffle(fold3_train)
+    random.shuffle(fold4_test)
+    random.shuffle(fold4_train)
+    random.shuffle(fold5_test)
+    random.shuffle(fold5_train)
+
+    return fold1_test, fold1_train, fold2_test, fold2_train, fold3_test, fold3_train,\
+            fold4_test, fold4_train, fold5_test, fold5_train
 
 def get_dataloader(batch_size, seed, train_indices, test_indices):
     tweetdata = TwitterDataset()
@@ -339,23 +461,19 @@ if __name__ == "__main__":
     for x in train_data:
         # loss_tweets_cnt, labels, graph_edge_index, graph_loss_feature, user_feature, graph_no_loss_feature, \
         # merged_tree_edge_index, merged_tree_feature
-
-        # graph_node_features, graph_edge_index, user_text, user_feats, merged_tree_edge_index
-        # ,merged_tree_feature, labels, indices
-
-        # print('-----------------------0.graph_node_feature------------------')
-        # print(x[0])
-        # print('-----------------------1.graph_edge_index------------------')
-        # print(x[1])
-        # print('-----------------------2.user_text------------------')
-        # print(x[2])
-        # print('-----------------------3.user_feats------------------')
-        # print(x[3])
+        print('-----------------------0.graph_node_feature------------------')
+        print(x[0])
+        print('-----------------------1.graph_edge_index------------------')
+        print(x[1])
+        print('-----------------------2.user_text------------------')
+        print(x[2])
+        print('-----------------------3.user_feats------------------')
+        print(x[3])
         print('-----------------------4.merged_tree_edge_index-----------------')
-        print(x[4].shape)
+        print(x[4])
         print('-----------------------5.merged_tree_feature------------------')
-        print(x[5].shape)
-        # print('-----------------------6.labels------------------')
-        # print(x[6])
+        print(x[5])
+        print('-----------------------6.labels------------------')
+        print(x[6])
         print('-----------------------7.indices------------------')
         print(x[7])

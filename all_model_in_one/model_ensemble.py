@@ -126,8 +126,6 @@ class TreeGCN(nn.Module):
             merged_tree_edge_index[index] = merged_tree_edge_index
         x1 = copy.copy(x_input.float())
         x = self.conv1(x_input, merged_tree_edge_index)
-       # print('x', x.shape)
-       # print('indices', len(indices))
         x2 = copy.copy(x)
 
         root_extend = torch.zeros(len(indices), x1.size(1)).to(device)   
@@ -135,9 +133,6 @@ class TreeGCN(nn.Module):
             index = (torch.eq(indices, num_batch))
             root_extend[index] = x1[num_batch]
         
-       # print('x.shape', x.shape)
-       # print('root_extend.shape', root_extend.shape)
-
         x = torch.cat((x,root_extend), 1)
 
         x = F.elu(x)
@@ -173,6 +168,8 @@ class Net(nn.Module):
         self.graph_hidden_size1 = args.graph_hidden_size1
         self.graph_hidden_size2 = args.graph_hidden_size2
         # self.graph_hidden_size3 = args.graph_hidden_size3
+        
+        self.linear_size = args.linear_hidden_size1
 
         self.num_layer = 2
         self.text_input_size = args.embed_dim
@@ -180,12 +177,14 @@ class Net(nn.Module):
         ## model
         self.GraphGCN = GraphGCN(self.args, tweet_embedding_matrix, self.graph_hidden_size1, self.graph_hidden_size2)
         self.TreeGCN = TreeGCN(self.args, self.direction, tweet_embedding_matrix, self.text_input_size, self.tree_hidden_size1, self.tree_hidden_size2)
-        self.fc = nn.Linear(self.tree_hidden_size1 + self.tree_hidden_size2 + self.graph_hidden_size2, 4)   
+        self.fc1 = nn.Linear(self.tree_hidden_size1 + self.tree_hidden_size2 + self.graph_hidden_size2, 4)
+        # self.fc2 = nn.Linear(self.linear_size, 4)   
 
     def forward(self, user_feats, graph_node_features, graph_edge_index, merged_tree_feature, merged_tree_edge_index, indices):
         graph_output = self.GraphGCN(user_feats, graph_node_features, graph_edge_index, indices)
         tree_output = self.TreeGCN(merged_tree_feature, merged_tree_edge_index, indices)
 
         tweet_feature = torch.cat((graph_output, tree_output), 1)
-        out_y = self.fc(tweet_feature)
+        out_y = self.fc1(tweet_feature)
+        # out_y = self.fc2(out_y)
         return out_y
