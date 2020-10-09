@@ -1,16 +1,11 @@
 import pandas as pd
 import os.path as pth
 import json
-from pre_process.task import SOURCE_TWEET_NUM, FILTER_NUM, DATASET_NAME
+import csv
+from task import SOURCE_TWEET_NUM, FILTER_NUM, DATASET_NAME, LOAD_DATA
 
 filter_num = FILTER_NUM
-dataset_name = DATASET_NAME
-
-if dataset_name == 'twitter15':
-    load_data = 'load_data15'
-if dataset_name == 'twitter16':
-    load_data = 'load_data16'
-
+print('filter_num: {}'.format(filter_num))
 
 def read_dict_from_json(path):
     with open(path, 'r', encoding='utf-8') as f:
@@ -19,7 +14,7 @@ def read_dict_from_json(path):
     return data
 
 # label_path = pth.join('tweet_id2label.json')
-label_path = pth.join('label_dict.json')
+label_path = pth.join('../datasets/{}/raw_data/label_dict.json'.format(DATASET_NAME))
 label_dict = read_dict_from_json(label_path)
 print(label_dict)
 
