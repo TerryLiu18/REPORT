@@ -1,9 +1,16 @@
 import pandas as pd
 import os.path as pth
 import json
-import csv
+from pre_process.task import SOURCE_TWEET_NUM, FILTER_NUM, DATASET_NAME
 
-filter_num = 5
+filter_num = FILTER_NUM
+dataset_name = DATASET_NAME
+
+if dataset_name == 'twitter15':
+    load_data = 'load_data15'
+if dataset_name == 'twitter16':
+    load_data = 'load_data16'
+
 
 def read_dict_from_json(path):
     with open(path, 'r', encoding='utf-8') as f:
@@ -37,7 +44,7 @@ df.to_csv('comments_text_encode3.csv', encoding='utf-8', line_terminator='\n')
 df = pd.read_csv('filtered_user_profile{}_encode1.csv'.format(str(filter_num)), encoding='utf-8')
 
 length = df.shape[0]
-df['node_id'] = list(range(790, 790+length))
+df['node_id'] = list(range(SOURCE_TWEET_NUM, SOURCE_TWEET_NUM+length))
 df = df[['node_id', 'user_id', 'created_time', 'statuses_count',
          'favourites_count', 'listed_count', 'followers_count',
          'friends_count', 'text', 'year', 'month', 'day', 'hour']]
