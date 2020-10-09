@@ -1,6 +1,6 @@
-# ParallelGCN
+# REPORT
 
-This is the ParallelGCN code for fake news detection. We are currently using **twitter16 dataset**
+This is the **REPORT** code for fake news detection. We are currently using **twitter15&16 dataset**
 
 ### Current Structure:
 Project structures of this repo are listed in project_structure.txt
@@ -13,6 +13,7 @@ torch_geometric does not support conda installation currently, please view
 your installing versions at [here](https://pytorch-geometric.com/whl/torch-1.5.0.html), 
 and install it with **pip**.
 you need to install **4** dependencies before installing PyG: 
+
 + torch-scatter
 + torch-sparse
 + torch-cluster
@@ -45,16 +46,10 @@ complete dataset is available at: https://www.dropbox.com/home/FakeNew2020/datas
 
 #### Steps for pre_processing:
 
-0. python ./pre_process/tree_operation.py  to split raw data to tree_tree and graph_tree<br>
-1. python ./../../raw_data/all_user_stat.py -> all_user_info.csv<br> to prepare for graph build and eliminate isolated tree<br>
-2. python utils.py  get filtered user profile <br>
-3. python user_processing.py<br>
-4. python tweet_processing.py<br>
-5. python tree_processing.py<br>
-6. python word_mapping.py<br>
-7. python build_graph_connection.py<br>
+1. in each folder that contain *task.py*, configure the parameter according to your experiments. <br>
+2. in *datasets/twitter15(6)/raw_data/*, run *raw_data.bat* <br>
+3. in *pre_process/*,  run *pre_process.bat* <br>
+4. in *load_data15(6)/*, run *add_label.py* and *count_tweet.py*
 
-get more 'user_filter' dataset:<br>
-re-run utils.py, user_processing.py, word_mapping.py and build_graph_connection.py<br>
-check_connection.py to see whether there is isolated tree<br>
+
 
