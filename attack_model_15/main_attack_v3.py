@@ -388,23 +388,21 @@ if __name__ == '__main__':
     np.random.seed(seed)
     random.seed(seed)
 
-    if (not args.attack) and args.train:
-        # load vocab of tweets
-        TWEETS_WORD_FILE = pth.join('../load_data15_1473/tweets_words_mapping.json')
-        tweets_word_map, _ = _load_word2index(TWEETS_WORD_FILE)
-        glove_file = '../glove/glove.twitter.27B.{}d.txt'.format(args.embed_dim)
-        embed_dim = args.embed_dim
-        print("--load pretrain embedding now--")
-        tweet_embedding_matrix = _get_embedding(glove_file, tweets_word_map, embed_dim)
-        model = Net(args, tweet_embedding_matrix) # load model
+    # load vocab of tweets
+    TWEETS_WORD_FILE = pth.join('../load_data15_1473/tweets_words_mapping.json')
+    tweets_word_map, _ = _load_word2index(TWEETS_WORD_FILE)
+    glove_file = '../glove/glove.twitter.27B.{}d.txt'.format(args.embed_dim)
+    embed_dim = args.embed_dim
+    print("--load pretrain embedding now--")
+    tweet_embedding_matrix = _get_embedding(glove_file, tweets_word_map, embed_dim)
+    model = Net(args, tweet_embedding_matrix) # load model
 
+        # TWEETS_WORD_FILE = pth.join('../load_data15_1473/tweets_words_mapping.json')
+        # tweets_word_map, _ = _load_word2index(TWEETS_WORD_FILE)
+        # embed_dim = args.embed_dim
+        # tweet_embedding_matrix = _get_embedding(glove_file, tweets_word_map, embed_dim)
+        # model = Net(args, tweet_embedding_matrix)
     if args.load_ckpt and args.attack:
-        TWEETS_WORD_FILE = pth.join('../load_data15_1473/tweets_words_mapping.json')
-        tweets_word_map, _ = _load_word2index(TWEETS_WORD_FILE)
-        embed_dim = args.embed_dim
-        tweet_embedding_matrix = torch.FloatTensor(np.zeros((len(tweets_word_map), embed_dim)))
-        model = Net(args, tweet_embedding_matrix)
-
         bad_user_path = pth.join('../attack15/bad_user_score40.json')
         bad_users_dict = util.read_dict_from_json(bad_user_path)
         bad_users = list(bad_users_dict.keys())
@@ -458,9 +456,6 @@ if __name__ == '__main__':
 
         for k in range(5):
             node_graph, index_graph = alter_graph(node_graph, index_graph, bad_user_set)
-            # edge, label, value, best_graph_index_map, best_graph_dict = alter_graph(adjdict, bad_user_set, current_graph_index)
-            # node_graph = node_graph_new
-            # index_graph = index_graph_new
         
         save_dict_to_json(greedy_search_attack_trace, os.path.join('greedy_search_attack_trace.json'))
 
