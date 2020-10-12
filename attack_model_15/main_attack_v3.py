@@ -263,9 +263,7 @@ def index_graph_add_edge(index_graph, bad_user_node, target_tweet_node):
     """
     if not bad_user_node and not target_tweet_node:
         print('no add edge')
-        # index_graph_new = copy.deepcopy(index_graph)
-        index_graph_new = index_graph.clone().detach()
-        return index_graph_new
+        return index_graph
 
     bad_user_index = user_map[str(bad_user_node)]
     tweet_index = loss_tweet_map[str(target_tweet_node)]
@@ -397,11 +395,6 @@ if __name__ == '__main__':
     tweet_embedding_matrix = _get_embedding(glove_file, tweets_word_map, embed_dim)
     model = Net(args, tweet_embedding_matrix) # load model
 
-        # TWEETS_WORD_FILE = pth.join('../load_data15_1473/tweets_words_mapping.json')
-        # tweets_word_map, _ = _load_word2index(TWEETS_WORD_FILE)
-        # embed_dim = args.embed_dim
-        # tweet_embedding_matrix = _get_embedding(glove_file, tweets_word_map, embed_dim)
-        # model = Net(args, tweet_embedding_matrix)
     if args.load_ckpt and args.attack:
         bad_user_path = pth.join('../attack15/bad_user_score40.json')
         bad_users_dict = util.read_dict_from_json(bad_user_path)
