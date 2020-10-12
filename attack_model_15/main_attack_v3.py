@@ -343,6 +343,7 @@ def alter_graph(node_graph, index_graph, user_set):
             print('edge: {}, {}'.format(label_chosen_edge, value_chosen_edge))
             print('new correct_label num: {}'.format(correct_label_best))
             print('new fake value : {}'.format(fake_value_best))
+            print("new accuracy: {}".format(accy))
 
     # chosen_edge: (user_node, tweet_node)
 
@@ -363,7 +364,7 @@ def alter_graph(node_graph, index_graph, user_set):
     best_index_graph = index_graph_add_edge(original_index_graph, chosen_edge[0], chosen_edge[1])
     correct_label_final, fake_value_final, accy = calc_target_output(best_index_graph)
     print("{}: ({}, {})\n".format(chosen_edge, correct_label_final, fake_value_final))
-    
+
     attack_edge = "{}-{}".format(chosen_edge[0], chosen_edge[1])
     greedy_search_attack_trace[attack_edge] = (correct_label_final, fake_value_final)
     add_edge_trace.write("{}: ({}, {})\n".format(chosen_edge, correct_label_final, fake_value_final))
