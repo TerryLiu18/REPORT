@@ -321,14 +321,15 @@ def alter_graph(node_graph, index_graph, user_set):
     correct_label_best = correct_label_origin
     fake_value_best = fake_value_origin
 
-    for bad_user_node in tqdm(user_set[:3]):
+    random.shuffle(user_set) 
+    for bad_user_node in tqdm(user_set[:5]):
         add_edge_flag = 0
         for tweet_node in tqdm(test_indices):   # all test tweet indices
             if int(bad_user_node) not in node_graph[str(tweet_node)] and int(tweet_node) not in node_graph[str(bad_user_node)]:
                 add_edge_flag = 1
                 # new_node_graph = node_graph_add_edge(node_graph, bad_user_node, tweet_node)
                 index_graph_new = index_graph_add_edge(index_graph, bad_user_node, tweet_node)
-                correct_label_new, fake_value_new,  accy = calc_target_output(index_graph_new)
+                correct_label_new, fake_value_new, accy = calc_target_output(index_graph_new)
                 
                 if fake_value_new < fake_value_best:
                     fake_value_best = fake_value_new
@@ -392,7 +393,7 @@ if __name__ == '__main__':
     model = Net(args, tweet_embedding_matrix) # load model
 
     if args.load_ckpt and args.attack:
-        bad_user_path = pth.join('../attack15/bad_user_score40.json')
+        bad_user_path = pth.join('../attack15/bad_user_score30.json')
         bad_users_dict = util.read_dict_from_json(bad_user_path)
         bad_users = list(bad_users_dict.keys())
         bad_users = [i.split('.')[0] for i in bad_users]
@@ -429,8 +430,7 @@ if __name__ == '__main__':
         loss_tweet_map, user_map, no_loss_tweet_map = data[8], data[9], data[10]
 
     bad_user_set = [usr_id for usr_id in bad_user_set if str(usr_id) in user_map.keys()]
-    print('bad user num: {}'.format(len(bad_user_set)))    
-    random.shuffle(bad_user_set)     
+    print('bad user num: {}'.format(len(bad_user_set)))        
     # print(bad_user_set)  
 
     if args.load_ckpt and args.attack:
