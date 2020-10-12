@@ -280,25 +280,20 @@ def index_graph_add_edge(index_graph, bad_user_node, target_tweet_node):
 
 def calc_target_output(idx_graph):
     model.eval()
-    all_pred = []
-    all_labels = []
-    all_y_pred = []
     with torch.no_grad():
         output = model(user_feats, graph_node_features, idx_graph, merged_tree_feature, merged_tree_edge_index, indx)
         output = F.softmax(output, dim=1)
         # all_pred = torch.Tensor.cpu(output).detach().numpy()
         all_pred = output.cpu().data.numpy()
         
-        all_labels = labels
-        _, y_pred = output.max(dim=1)
-        all_y_pred = y_pred
+        _, label_pred = output.max(dim=1)
         
         rumor_score = 0
         correct = 0
-        for i in range(len(all_labels)):
-            if all_labels[i] == 1 and all_y_pred[i] == 1:
+        for i in range(len(labels)):
+            if labels[i] == 1 and label_pred[i] == 1:
                 correct += 1
-            if all_labels[i] == 1:
+            if labels[i] == 1:
                 rumor_score += all_pred[i,1]
     return correct, rumor_score
 
