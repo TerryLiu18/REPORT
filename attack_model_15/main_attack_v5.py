@@ -244,10 +244,10 @@ def node_graph_add_edge(node_graph, user, tweet):
     input: old graph, user(node), tweet(node())
     outpyt: new_graph
     """
-    if not user and not tweet:
-        print('no add edge')
-        node_graph_new = copy.deepcopy(node_graph)
-        return node_graph_new
+    # if not user and not tweet:
+    #     print('no add edge')
+    #     node_graph_new = copy.deepcopy(node_graph)
+    #     return node_graph_new
 
     assert int(user) >= SOURCE_TWEET_NUM
     if int(user) in node_graph[str(tweet)] and \
@@ -328,12 +328,14 @@ def alter_graph(original_node_graph, original_index_graph, user_set, label_list,
     # for bad_user_node in tqdm(user_set[:3]):
     # for tweet_node in tqdm(test_indices):   # all test tweet indices
     # for tweet_node in test_indices:
-    pbar = tqdm(total=len(target_tweet_set) * len(user_set))
+    # pbar = tqdm(total=len(target_tweet_set) * len(user_set))
+    pbar = tqdm(total=80 * len(user_set))
     pbar.update(0)
+    random.shuffle(target_tweet_set)
     for bad_user_node in user_set:
     #for tweet_node in target_tweet_set:
         improve = False
-        for tweet_node in target_tweet_set:
+        for tweet_node in target_tweet_set[:80]:
        # for bad_user_node in user_set:
             if int(bad_user_node) not in node_graph[str(tweet_node)] and int(tweet_node) not in node_graph[str(bad_user_node)]:
                 pbar.update(1)
@@ -371,14 +373,14 @@ def alter_graph(original_node_graph, original_index_graph, user_set, label_list,
 
     print("{}: ({}, {})\n".format(chosen_edge, correct_label_best, fake_value_best))
     print("--------------------------finish 1 add----------------------------")
-    add_edge_record = pth.join('./record_' + args.model + '.md')   
+    add_edge_record = pth.join('./record_' + args.model + '80.md')   
     md = open(add_edge_record, 'a') 
     md_write = "{}: ({}, {})\n".format(chosen_edge, correct_label_best, fake_value_best)
     md.write(md_write)
     md.close()
     attack_edge = "{}-{}".format(chosen_edge[0], chosen_edge[1])
     greedy_search_attack_trace[attack_edge] = (correct_label_best, fake_value_best)
-    return best_node_graph, best_index_graph, improve
+    return best_node_graph, best_index_graph, improve, correct_label_best
 
     # chosen_edge: (user_node, tweet_node)
 
@@ -513,7 +515,7 @@ if __name__ == '__main__':
         print("user num: {}".format(len(test_user_set)))
         print("tweet num: {}".format(len(test_tweet_set)))
 
-        target_tweet_set = two_hop_tweet_set # a set of node
+        target_tweet_set = list(two_hop_tweet_set) # a set of node
         # print(bad_user_set)
         # print(attack_user_list)
         # attack_user_list = list(set(bad_user_set) & set(attack_user_list))
@@ -532,9 +534,12 @@ if __name__ == '__main__':
         print('len(attack_user_list): {}'.format(len(attack_user_list)))
 
         #sys.exit()
-        count_improve = 0
-        for i in range(20):
-            node_graph, index_graph, improve = alter_graph(node_graph, index_graph, attack_user_list, [lowest_idx], target_tweet_set)
+        correct = 1
+        i = 0
+        while correct:
+            print(i)
+            node_graph, index_graph, improve, correct = alter_graph(node_graph, index_graph, attack_user_list, [lowest_idx], target_tweet_set)
+            i += 1
             # if improve:
             #     count_improve += 1
         
