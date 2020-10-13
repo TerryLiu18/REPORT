@@ -431,7 +431,7 @@ if __name__ == '__main__':
     # print(bad_user_set)  
 
     if args.load_ckpt and args.attack:
-        bad_user_path = pth.join('../attack15/bad_user_score20.json')
+        bad_user_path = pth.join('../attack15/bad_user_score25.json')
         bad_users_dict = util.read_dict_from_json(bad_user_path)
         bad_users = list(bad_users_dict.keys())
         bad_users = [i.split('.')[0] for i in bad_users]
@@ -494,16 +494,9 @@ if __name__ == '__main__':
         assert lowest_idx is not None
         reverse_loss_tweet_map = dict(zip(loss_tweet_map.values(), loss_tweet_map.keys()))  # index2node
         target_node = reverse_loss_tweet_map[int(lowest_idx)]
-        attack_user_list = [int(i) for i in adjdict[str(target_node)]]
+        attack_user_list = adjdict[str(target_node)]
         print("target_node: {}| attack_user_list number: {}".format(target_node, len(attack_user_list)))
         
-        # get target 2-hop neighbor tweet
-        two_hop_tweet_set = set()
-        u_list = adjdict[str(target_node)]
-        for u in u_list:
-            two_hop_tweet_set.update(adjdict[str(u)])
-        print('len(two_hop_tweet_set) :{}'.format(len(two_hop_tweet_set)))
-
         # get all tweet list in the subgraph
         test_tweet_set = set(test_indices)
         test_user_set = set()
@@ -516,18 +509,12 @@ if __name__ == '__main__':
         print("user num: {}".format(len(test_user_set)))
         print("tweet num: {}".format(len(test_tweet_set)))
 
-        target_tweet_set = two_hop_tweet_set # a set of node
-        # print(bad_user_set)
-        # print(attack_user_list)
-        # attack_user_list = list(set(bad_user_set) & set(attack_user_list))
-
-        # attack_user must in bad user set
-
+        target_tweet_set = test_tweet_set # a set of node
+        bad_user_set = test_user_set
         print('len(target_tweet_set): {}'.format(len(target_tweet_set)))
         print('len(bad_user_set): {}'.format(len(bad_user_set)))
         print('len(attack_user_list): {}'.format(len(attack_user_list)))
 
-        sys.exit()
         count_improve = 0
         for i in range(10):
             node_graph, index_graph, improve = alter_graph(node_graph, index_graph, attack_user_list, [lowest_idx])
