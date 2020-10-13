@@ -313,7 +313,7 @@ def calc_target_output(idx_graph, label_list):
 
 
 
-def alter_graph(original_node_graph, original_index_graph, user_set, label_list):
+def alter_graph(original_node_graph, original_index_graph, user_set, label_list, target_tweet_set):
     """
     alter graph using Beam Search Algorithm
     {(user1,tweet1): loss1, (user2,tweet2): loss2 ...}
@@ -340,9 +340,11 @@ def alter_graph(original_node_graph, original_index_graph, user_set, label_list)
     # for tweet_node in test_indices:
     pbar = tqdm(total=len(target_tweet_set) * len(user_set))
     pbar.update(0)
-    for tweet_node in target_tweet_set:
+    for bad_user_node in user_set:
+    #for tweet_node in target_tweet_set:
         improve = False
-        for bad_user_node in user_set:
+        for tweet_node in target_tweet_set:
+       # for bad_user_node in user_set:
             if int(bad_user_node) not in node_graph[str(tweet_node)] and int(tweet_node) not in node_graph[str(bad_user_node)]:
                 pbar.update(1)
                 new_node_graph = node_graph_add_edge(original_node_graph, bad_user_node, tweet_node)
@@ -379,6 +381,11 @@ def alter_graph(original_node_graph, original_index_graph, user_set, label_list)
 
     print("{}: ({}, {})\n".format(chosen_edge, correct_label_best, fake_value_best))
     print("--------------------------finish 1 add----------------------------")
+    add_edge_record = pth.join('./record_' + args.model + '.md')   
+    md = open(add_edge_record, 'a') 
+    md_write = "{}: ({}, {})\n".format(chosen_edge, correct_label_best, fake_value_best)
+    md.write(md_write)
+    md.close()
     attack_edge = "{}-{}".format(chosen_edge[0], chosen_edge[1])
     greedy_search_attack_trace[attack_edge] = (correct_label_best, fake_value_best)
     return best_node_graph, best_index_graph, improve
@@ -497,7 +504,6 @@ if __name__ == '__main__':
         target_node = reverse_loss_tweet_map[int(lowest_idx)]
         neighbor_user_list = [int(i) for i in adjdict[str(target_node)]]
         print("target_node: {}| attack_user_list number: {}".format(target_node, len(neighbor_user_list)))
-        
         # get target 2-hop neighbor tweet
         two_hop_tweet_set = set()
         u_list = adjdict[str(target_node)]
@@ -539,7 +545,7 @@ if __name__ == '__main__':
         #sys.exit()
         count_improve = 0
         for i in range(10):
-            node_graph, index_graph, improve = alter_graph(node_graph, index_graph, attack_user_list, [lowest_idx])
+            node_graph, index_graph, improve = alter_graph(node_graph, index_graph, attack_user_list, [lowest_idx], target_tweet_set)
             # if improve:
             #     count_improve += 1
         
