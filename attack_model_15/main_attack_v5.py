@@ -112,7 +112,7 @@ def _load_word2index(word_file):
 def _load_checkpoint():
     ckp_path = os.path.join(args.ckpt_dir, args.ckpt_name)
     if os.path.isfile(ckp_path):
-        checkpoint = torch.load(ckp_path)
+        checkpoint = torch.load(ckp_path, map_location=torch.device('cuda:0'))
         model.load_state_dict(checkpoint['model_state'])
         optimizer.load_state_dict(checkpoint['optim_state'])
         global_step = checkpoint['global_step']
@@ -265,10 +265,6 @@ def index_graph_add_edge(index_graph, bad_user_node, target_tweet_node):
     input: graph_index, user_nodeid, tweet_nodeid
     output: new_graph_index
     """
-    if not bad_user_node and not target_tweet_node:
-        print('no add edge')
-        return index_graph
-
     bad_user_index = user_map[str(bad_user_node)]
     if str(target_tweet_node) in loss_tweet_map.keys():
         tweet_index = loss_tweet_map[str(target_tweet_node)]
@@ -276,14 +272,11 @@ def index_graph_add_edge(index_graph, bad_user_node, target_tweet_node):
         tweet_index = no_loss_tweet_map[str(target_tweet_node)]
     else:
         raise ValueError(target_tweet_node)
-    if (not bad_user_index) and (not tweet_index):
-        raise ValueError('no available user or tweet to add edge')
-    else:
-        index_graph_new = copy.deepcopy(index_graph)
-        # index_graph_new = copy.deepcopy(index_graph)
-        index_graph_new = torch.cat((index_graph_new,
-         torch.tensor([[bad_user_index, tweet_index], [tweet_index, bad_user_index]]).to(device)), 1
-         )
+    index_graph_new = copy.deepcopy(index_graph)
+    # index_graph_new = copy.deepcopy(index_graph)
+    index_graph_new = torch.cat((index_graph_new,
+        torch.tensor([[bad_user_index, tweet_index], [tweet_index, bad_user_index]]).to(device)), 1
+        )
     return index_graph_new
 
 def _compute_accuracy(y_pred, y_labels):
@@ -302,12 +295,9 @@ def calc_target_output(idx_graph, label_list):
         rumor_score = 0
         correct = 0
         for i in range(len(label_list)):
-            if labels[label_list[i]] != 1:
-                raise ValueError(labels[label_list[i]])
-            if labels[label_list[i]] == 1 and label_pred[label_list[i]] == 1:
+            if label_pred[label_list[i]] == 1:
                 correct += 1
-            if labels[label_list[i]] == 1:
-                rumor_score += all_pred[label_list[i],1]
+            rumor_score += all_pred[label_list[i],1]
     return correct, rumor_score, accy
 
 
@@ -531,7 +521,6 @@ if __name__ == '__main__':
         # attack_user must in bad user set
         attack_user_score = [get_fake_score(user) for user in neighbor_user_list]
         attack_user_dict = dict(zip(neighbor_user_list, attack_user_score))
-        print(attack_user_dict)
         attack_user_list = []
         for u, score in attack_user_dict.items():
             if int(score)>30:
@@ -544,7 +533,7 @@ if __name__ == '__main__':
 
         #sys.exit()
         count_improve = 0
-        for i in range(10):
+        for i in range(20):
             node_graph, index_graph, improve = alter_graph(node_graph, index_graph, attack_user_list, [lowest_idx], target_tweet_set)
             # if improve:
             #     count_improve += 1
