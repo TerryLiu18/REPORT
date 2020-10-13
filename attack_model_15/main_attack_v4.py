@@ -266,7 +266,12 @@ def index_graph_add_edge(index_graph, bad_user_node, target_tweet_node):
         return index_graph
 
     bad_user_index = user_map[str(bad_user_node)]
-    tweet_index = loss_tweet_map[str(target_tweet_node)]
+    if str(target_tweet_node) in loss_tweet_map.keys():
+        tweet_index = loss_tweet_map[str(target_tweet_node)]
+    elif str(target_tweet_node) in no_loss_tweet_map.keys():
+        tweet_index = no_loss_tweet_map[str(target_tweet_node)]
+    else:
+        raise ValueError(target_tweet_node)
     if (not bad_user_index) and (not tweet_index):
         raise ValueError('no available user or tweet to add edge')
     else:
@@ -293,6 +298,8 @@ def calc_target_output(idx_graph, label_list):
         rumor_score = 0
         correct = 0
         for i in range(len(label_list)):
+            if labels[label_list[i]] != 1:
+                raise ValueError(labels[label_list[i]])
             if labels[label_list[i]] == 1 and label_pred[label_list[i]] == 1:
                 correct += 1
             if labels[label_list[i]] == 1:
@@ -302,106 +309,84 @@ def calc_target_output(idx_graph, label_list):
 
 
 
-def alter_graph(node_graph, index_graph, user_set, label_list):
+def alter_graph(original_node_graph, original_index_graph, user_set, label_list):
     """
     alter graph using Beam Search Algorithm
     {(user1,tweet1): loss1, (user2,tweet2): loss2 ...}
     """
         # graph_trace_cluster = graph_trace_list[-1]  # cluster will be [(a,b), (c,d) ...]  (K pairs)
     # for edge in graph_trace_cluster:
-    original_node_graph = node_graph
-    original_index_graph = index_graph
+    node_graph = copy.deepcopy(original_node_graph)
+    index_graph = copy.deepcopy(original_index_graph)
+    best_node_graph = node_graph
+    best_index_graph = index_graph
+    
+    chosen_edge = (None, None)
 
-    correct_label_origin, fake_value_origin, accy = calc_target_output(index_graph, label_list)
-
-    label_chosen_edge = None
-    value_chosen_edge = None
-    best_node_graph = original_node_graph
-    best_index_graph = original_index_graph
-    # correct_label_best_list = []
-    # fake_value_best_list = []
+    correct_label_origin, fake_value_origin, accy = calc_target_output(original_index_graph, label_list)
+    print('before attack: label:{}, fake value: {}'.format(correct_label_origin, fake_value_origin))
+    print('-'*89)
+ 
     correct_label_best = correct_label_origin
     fake_value_best = fake_value_origin
 
     # bad_user_node = user_set[:10]
     # for bad_user_node in tqdm(user_set[:3]):
     # for tweet_node in tqdm(test_indices):   # all test tweet indices
-    improve = False
-    index_graph_new = index_graph
-    new_node_graph = node_graph
-
-    count = 0 
-    pbar = tqdm(total=200)
-    pbar.update(count)
-    random.shuffle(user_set) 
-    random.shuffle(test_indices)
-    for tweet_node in test_indices:
-        for bad_user_node in user_set[:15]:
+    # for tweet_node in test_indices:
+    pbar = tqdm(total=len(target_tweet_set) * len(user_set))
+    pbar.update(0)
+    for tweet_node in target_tweet_set:
+        improve = False
+        for bad_user_node in user_set:
             if int(bad_user_node) not in node_graph[str(tweet_node)] and int(tweet_node) not in node_graph[str(bad_user_node)]:
-                count += 1
                 pbar.update(1)
-                new_node_graph = node_graph_add_edge(new_node_graph, bad_user_node, tweet_node)
-                index_graph_new = index_graph_add_edge(index_graph_new, bad_user_node, tweet_node)
-                if count >= 200:
-                    break
-        if count >= 200:
-            break
+                new_node_graph = node_graph_add_edge(original_node_graph, bad_user_node, tweet_node)
+                index_graph_new = index_graph_add_edge(original_index_graph, bad_user_node, tweet_node)
+                correct_label_new, fake_value_new, accy = calc_target_output(index_graph_new, label_list)     
 
-    correct_label_new, fake_value_new, accy = calc_target_output(index_graph_new, label_list)
-        
-    if correct_label_new < correct_label_best:
-        correct_label_best = correct_label_new
-        # label_chosen_edge = [(bad_user_node, tweet_node) for bad_user_node in user_set[:10]]
-        best_index_graph = index_graph_new
-        best_node_graph = new_node_graph
-        improve = True
+                if fake_value_best - fake_value_new > 0 :
+                    fake_value_best = fake_value_new
+                    correct_label_best = correct_label_new
+                    chosen_edge = (bad_user_node, tweet_node)
+                    best_index_graph = index_graph_new
+                    best_node_graph = new_node_graph
+                    improve = True
+                    
+                # if correct_label_new < correct_label_best:
+                #     correct_label_best = correct_label_new
+                #     label_chosen_edge = (bad_user_node, tweet_node)
+                #     best_index_graph = index_graph_new
+                #     best_node_graph = new_node_graph
+                #     improve = True
 
-    if fake_value_new < fake_value_best:
-        fake_value_best = fake_value_new
-        # value_chosen_edge = [(bad_user_node, tweet_node) for bad_user_node in user_set[:10]]
-        best_index_graph = index_graph_new
-        best_node_graph = new_node_graph
-        improve = True
+        # print after finishing all user            
+        if improve:        
+            print('origin correct_label: {}'.format(correct_label_origin))
+            print('origin label_score: {}'.format(fake_value_origin))
+            print("origin accuracy: {}".format(accy))
+            print('*' * 90)
+            # print('edge: {}, {}'.format(label_chosen_edge, value_chosen_edge))
+            print('new correct_label num: {}'.format(correct_label_best))
+            print('new fake value : {}'.format(fake_value_best))
+            print("new accuracy: {}".format(accy))
+        else:
+            print("no improve!")
 
-    if improve:        
-        print('origin correct_label: {}'.format(correct_label_origin))
-        print('origin label_score: {}'.format(fake_value_origin))
-        print("origin accuracy: {}".format(accy))
-        print('*' * 90)
-        # print('edge: {}, {}'.format(label_chosen_edge, value_chosen_edge))
-        print('new correct_label num: {}'.format(correct_label_best))
-        print('new fake value : {}'.format(fake_value_best))
-        print("new accuracy: {}".format(accy))
+    print("{}: ({}, {})\n".format(chosen_edge, correct_label_best, fake_value_best))
+    print("--------------------------finish 1 add----------------------------")
+    attack_edge = "{}-{}".format(chosen_edge[0], chosen_edge[1])
+    greedy_search_attack_trace[attack_edge] = (correct_label_best, fake_value_best)
+    return best_node_graph, best_index_graph, improve
 
-    else:
-        print("no improve!")
     # chosen_edge: (user_node, tweet_node)
 
-    # if fake_value_best < fake_value_origin:
-    #     chosen_edge = value_chosen_edge   # choose label_chosen_edge 
-    # elif fake_value_best == fake_value_origin and correct_label_best < correct_label_origin:   # choose value_chosen_edge 
-    #     chosen_edge = label_chosen_edge
-    # else:
-    #     if fake_value_best == fake_value_origin:
-    #         print('no available attack')
-    #         chosen_edge = []
-    #     else:
-    #         raise ValueError
-    # print('chosen_edge', chosen_edge)
-
+    # select the best attacking edge according to output value only
     # recalculate the label and value loss in best chosen edge
     # best_node_graph = node_graph_add_edge(original_node_graph, chosen_edge[0], chosen_edge[1])
     # best_index_graph = index_graph_add_edge(original_index_graph, chosen_edge[0], chosen_edge[1])
-    # correct_label_final, fake_value_final, accy = calc_target_output(best_index_graph)
-    # print("{}: ({}, {})\n".format(chosen_edge, correct_label_final, fake_value_final))
-    print("({}, {}, {})\n".format(correct_label_best, fake_value_best, accy))
-    print('-' * 90)
-    print()
 
-    # attack_edge = "{}-{}".format(chosen_edge[0], chosen_edge[1])
-    # greedy_search_attack_trace[attack_edge] = (correct_label_final, fake_value_final)
     # add_edge_trace.write("{}: ({}, {})\n".format(chosen_edge, correct_label_final, fake_value_final))
-    return best_node_graph, best_index_graph, improve
 
 
 
@@ -426,6 +411,21 @@ if __name__ == '__main__':
     print("--load pretrain embedding now--")
     tweet_embedding_matrix = _get_embedding(glove_file, tweets_word_map, embed_dim)
     model = Net(args, tweet_embedding_matrix) # load model
+    
+    model.to(device)
+    # train_indices, test_indices = data_split()
+    train_indices = txt2iterable(pth.join('train_indices.txt'))
+    test_indices = txt2iterable(pth.join('test_indices.txt'))
+    graph_connection_path = '../load_data15_1473/graph_connections2.json'
+    adjdict = util.read_dict_from_json(pth.join(graph_connection_path))
+
+    train_loader, test_loader = get_dataloader(args.batch_size, train_indices, test_indices, adjdict)
+    optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, betas=(0.9, 0.999), weight_decay=args.weight_decay)
+    loss_fun = nn.CrossEntropyLoss()
+    global_step = 0
+    curr_epoch = 0
+    # get all info from test dataloader
+    # print(bad_user_set)  
 
     if args.load_ckpt and args.attack:
         bad_user_path = pth.join('../attack15/bad_user_score25.json')
@@ -441,34 +441,16 @@ if __name__ == '__main__':
         user2node_dict = dict(zip(user_id_list, node_id_list))
         bad_user_set = [user2node_dict[i] for i in bad_users]
         assert bad_user_set is not None
-        # take record of add trace
-    else:
-        raise ValueError
-    
-    model.to(device)
-    # train_indices, test_indices = data_split()
-    train_indices = txt2iterable(pth.join('train_indices.txt'))
-    test_indices = txt2iterable(pth.join('test_indices.txt'))
-    graph_connection_path = '../load_data15_1473/graph_connections2.json'
-    adjdict = util.read_dict_from_json(pth.join(graph_connection_path))
 
-    train_loader, test_loader = get_dataloader(args.batch_size, train_indices, test_indices, adjdict)
-    optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, betas=(0.9, 0.999), weight_decay=args.weight_decay)
-    loss_fun = nn.CrossEntropyLoss()
-    global_step = 0
-    curr_epoch = 0
-    # get all info from test dataloader
-    for data in test_loader:
-        graph_node_features, original_index_graph, user_feats = Variable(data[0]).to(device), Variable(data[1]).to(device), Variable(data[3]).to(device)
-        merged_tree_edge_index, merged_tree_feature, labels = Variable(data[4]).to(device), Variable(data[5]).to(device), Variable(data[6]).to(device)
-        indx = data[7].to(device)
-        loss_tweet_map, user_map, no_loss_tweet_map = data[8], data[9], data[10]
+        for data in test_loader:
+            graph_node_features, original_index_graph, user_feats = Variable(data[0]).to(device), Variable(data[1]).to(device), Variable(data[3]).to(device)
+            merged_tree_edge_index, merged_tree_feature, labels = Variable(data[4]).to(device), Variable(data[5]).to(device), Variable(data[6]).to(device)
+            indx = data[7].to(device)
+            loss_tweet_map, user_map, no_loss_tweet_map = data[8], data[9], data[10]
 
-    bad_user_set = [usr_id for usr_id in bad_user_set if str(usr_id) in user_map.keys()]
-    print('bad user num: {}'.format(len(bad_user_set)))        
-    # print(bad_user_set)  
-
-    if args.load_ckpt and args.attack:
+        bad_user_set = [usr_id for usr_id in bad_user_set if str(usr_id) in user_map.keys()]
+        print('bad user num: {}'.format(len(bad_user_set)))    
+            
         model, optimizer, global_step, curr_epoch = _load_checkpoint()
         # train_loader, test_loader = get_dataloader(args.batch_size, train_indices, test_indices, adjdict)
         print("***loading checkpoint successfully***")
@@ -493,24 +475,44 @@ if __name__ == '__main__':
 
             for i in range(len(labels)):
                 if labels[i] == 1 and label_pred[i] == 1:
-                    correct_fake_label_list.append(i)
+                    if i == 47:
+                        correct_fake_label_list.append(i)
                     correct += 1
                 if labels[i] == 1:
                     rumor_score += all_pred[i,1]
 
-        target_node_list = correct_fake_label_list[:5]
-        print(target_node)
+        # find target tweet node
+        target_node_list = correct_fake_label_list
+        print(target_node_list)
         print('beginning correct fake label', correct)
         print('beginning rumor value', rumor_score)
         
-        reverse_user_map = dict(zip(user_map.values(), user_map.keys()))  # index2node
-        target_node_list = [reverse_user_map[i] for i in target_node_list]
+        reverse_loss_tweet_map = dict(zip(loss_tweet_map.values(), loss_tweet_map.keys()))  # index2node
+        # print('reverse', reverse_loss_tweet_map)  # index: node
+        target_node_list = [reverse_loss_tweet_map[int(i)] for i in target_node_list]
 
+        attack_user_list = []
+        two_hop_tweet_list = []
+        for tweet in target_node_list:
+            u_list = adjdict[str(tweet)]
+            attack_user_list.extend(u_list)
+        for user in attack_user_list:
+            t_list = adjdict[str(user)]
+            two_hop_tweet_list.extend(t_list)
+        two_hop_tweet_set = set(str(i) for i in two_hop_tweet_list)
+        # test_tweet_set = set([str(t) for t in list(range(len(test_indices)))])
+        # print(two_hop_tweet_set)
+        # print(test_tweet_set)
+
+        target_tweet_set = two_hop_tweet_set # a set of node
+        print('len(target_tweet_set): {}'.format(len(target_tweet_set)))
+        print('len(bad_user_set): {}'.format(len(bad_user_set)))
+        # sys.exit()
         count_improve = 0
-        while count_improve < 20:
-            node_graph, index_graph, improve = alter_graph(node_graph, index_graph, bad_user_set, correct_fake_label_list)
-            if improve:
-                count_improve += 1
+        for i in range(10):
+            node_graph, index_graph, improve = alter_graph(node_graph, index_graph, bad_user_set, correct_fake_label_list[:1])
+            # if improve:
+            #     count_improve += 1
         
         save_dict_to_json(greedy_search_attack_trace, os.path.join('greedy_search_attack_trace.json'))
 

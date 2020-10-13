@@ -322,7 +322,7 @@ def alter_graph(node_graph, index_graph, user_set):
     fake_value_best = fake_value_origin
 
     random.shuffle(user_set) 
-    for bad_user_node in tqdm(user_set[:5]):
+    for bad_user_node in tqdm(user_set[:3]):
         add_edge_flag = 0
         for tweet_node in tqdm(test_indices):   # all test tweet indices
             if int(bad_user_node) not in node_graph[str(tweet_node)] and int(tweet_node) not in node_graph[str(bad_user_node)]:
