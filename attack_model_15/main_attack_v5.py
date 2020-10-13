@@ -37,6 +37,7 @@ from early_stopping_attack_v2 import EarlyStopping
 from dataset_attack import get_dataloader, data_split
 from evaluate import evaluation4class
 from tools import txt2iterable, iterable2txt
+from user2fake_score import get_fake_score
 
 SOURCE_TWEET_NUM = 1472
 
@@ -494,8 +495,8 @@ if __name__ == '__main__':
         assert lowest_idx is not None
         reverse_loss_tweet_map = dict(zip(loss_tweet_map.values(), loss_tweet_map.keys()))  # index2node
         target_node = reverse_loss_tweet_map[int(lowest_idx)]
-        attack_user_list = [int(i) for i in adjdict[str(target_node)]]
-        print("target_node: {}| attack_user_list number: {}".format(target_node, len(attack_user_list)))
+        neighbor_user_list = [int(i) for i in adjdict[str(target_node)]]
+        print("target_node: {}| attack_user_list number: {}".format(target_node, len(neighbor_user_list)))
         
         # get target 2-hop neighbor tweet
         two_hop_tweet_set = set()
@@ -522,12 +523,20 @@ if __name__ == '__main__':
         # attack_user_list = list(set(bad_user_set) & set(attack_user_list))
 
         # attack_user must in bad user set
+        attack_user_score = [get_fake_score(user) for user in neighbor_user_list]
+        attack_user_dict = dict(zip(neighbor_user_list, attack_user_score))
+        print(attack_user_dict)
+        attack_user_list = []
+        for u, score in attack_user_dict.items():
+            if int(score)>30:
+                attack_user_list.append(u)
 
-        print('len(target_tweet_set): {}'.format(len(target_tweet_set)))
-        print('len(bad_user_set): {}'.format(len(bad_user_set)))
+
+        # print('len(target_tweet_set): {}'.format(len(target_tweet_set)))
+        # print('len(bad_user_set): {}'.format(len(bad_user_set)))
         print('len(attack_user_list): {}'.format(len(attack_user_list)))
 
-        sys.exit()
+        #sys.exit()
         count_improve = 0
         for i in range(10):
             node_graph, index_graph, improve = alter_graph(node_graph, index_graph, attack_user_list, [lowest_idx])
