@@ -333,13 +333,11 @@ def alter_graph(original_node_graph, original_index_graph, user_set, label_list,
     pbar.update(0)
     random.shuffle(user_set)
     for bad_user_node in user_set[:20]:
-    #for tweet_node in target_tweet_set:
         improve = False
         random.shuffle(target_tweet_set)
         for tweet_node in target_tweet_set[:60]:
-       # for bad_user_node in user_set:
+            pbar.update(1)
             if int(bad_user_node) not in node_graph[str(tweet_node)] and int(tweet_node) not in node_graph[str(bad_user_node)]:
-                pbar.update(1)
                 new_node_graph = node_graph_add_edge(original_node_graph, bad_user_node, tweet_node)
                 index_graph_new = index_graph_add_edge(original_index_graph, bad_user_node, tweet_node)
                 correct_label_new, fake_value_new, accy = calc_target_output(index_graph_new, label_list)     
