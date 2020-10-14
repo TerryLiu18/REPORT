@@ -536,11 +536,11 @@ if __name__ == '__main__':
         print('len(attack_user_list): {}'.format(len(attack_user_list)))
 
         #sys.exit()
-        correct = 1
+        correct_score = 1
         i = 0
-        while correct:
+        while correct_score == 1:
             print(i)
-            node_graph, index_graph, improve, correct = alter_graph(node_graph, index_graph, attack_user_list, [lowest_idx], target_tweet_set)
+            node_graph, index_graph, improve, correct_score = alter_graph(node_graph, index_graph, attack_user_list, [lowest_idx], target_tweet_set)
             i += 1
             # if improve:
             #     count_improve += 1
