@@ -329,14 +329,14 @@ def alter_graph(original_node_graph, original_index_graph, user_set, label_list,
     # for tweet_node in tqdm(test_indices):   # all test tweet indices
     # for tweet_node in test_indices:
     # pbar = tqdm(total=len(target_tweet_set) * len(user_set))
-    pbar = tqdm(total=50 * 15)
+    pbar = tqdm(total=60 * 20)
     pbar.update(0)
     random.shuffle(user_set)
-    random.shuffle(target_tweet_set)
-    for bad_user_node in user_set[:15]:
+    for bad_user_node in user_set[:20]:
     #for tweet_node in target_tweet_set:
         improve = False
-        for tweet_node in target_tweet_set[:50]:
+        random.shuffle(target_tweet_set)
+        for tweet_node in target_tweet_set[:60]:
        # for bad_user_node in user_set:
             if int(bad_user_node) not in node_graph[str(tweet_node)] and int(tweet_node) not in node_graph[str(bad_user_node)]:
                 pbar.update(1)
