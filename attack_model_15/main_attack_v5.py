@@ -366,12 +366,12 @@ def alter_graph(original_node_graph, original_index_graph, user_set, label_list,
             # print('edge: {}, {}'.format(label_chosen_edge, value_chosen_edge))
             print('new correct_label num: {}'.format(correct_label_best))
             print('new fake value : {}'.format(fake_value_best))
-            print("new accuracy: {}".format(accy))
+            print("new accuracy: {}".format(accy), flush=True)
         else:
-            print("no improve!")
+            print("no improve!", flush=True)
 
     print("{}: ({}, {})\n".format(chosen_edge, correct_label_best, fake_value_best))
-    print("--------------------------finish 1 add----------------------------")
+    print("--------------------------finish 1 add----------------------------", flush=True)
     add_edge_record = pth.join('./record_' + args.model + '_true.md')   
     md = open(add_edge_record, 'a') 
     md_write = "{}: ({}, {})\n".format(chosen_edge, correct_label_best, fake_value_best)
@@ -533,13 +533,13 @@ if __name__ == '__main__':
 
         # print('len(target_tweet_set): {}'.format(len(target_tweet_set)))
         # print('len(bad_user_set): {}'.format(len(bad_user_set)))
-        print('len(attack_user_list): {}'.format(len(attack_user_list)))
+        print('len(attack_user_list): {}'.format(len(attack_user_list)), flush=True)
 
         #sys.exit()
         correct_score = 1
         i = 0
         while correct_score == 1:
-            print(i)
+            print(i, flush=True)
             node_graph, index_graph, improve, correct_score = alter_graph(node_graph, index_graph, attack_user_list, [lowest_idx], target_tweet_set)
             i += 1
             # if improve:
