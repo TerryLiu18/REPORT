@@ -318,8 +318,8 @@ def alter_graph(original_node_graph, original_index_graph, user_set, label_list,
     chosen_edge = (None, None)
 
     correct_label_origin, fake_value_origin, accy = calc_target_output(original_index_graph, label_list)
-    print('before attack: label:{}, fake value: {}'.format(correct_label_origin, fake_value_origin), flush=True)
-    print('-'*89)
+    print('before attack: label:{}, fake value: {}'.format(correct_label_origin, fake_value_origin))
+    print('-'*89, flush=True)
  
     correct_label_best = correct_label_origin
     fake_value_best = fake_value_origin
