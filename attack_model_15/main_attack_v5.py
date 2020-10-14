@@ -15,7 +15,7 @@ import time
 import json
 import argparse
 import random
-from tools import save_dict_to_json
+from tools import save_dict_to_json, txt2iterable, read_dict_from_json
 import torch
 import torch.nn.functional as F
 import numpy as np
@@ -331,11 +331,10 @@ def alter_graph(original_node_graph, original_index_graph, user_set, label_list,
     # pbar = tqdm(total=len(target_tweet_set) * len(user_set))
     pbar = tqdm(total=80 * len(user_set))
     pbar.update(0)
-    random.shuffle(target_tweet_set)
     for bad_user_node in user_set:
     #for tweet_node in target_tweet_set:
         improve = False
-        for tweet_node in target_tweet_set[:80]:
+        for tweet_node in target_tweet_set:
        # for bad_user_node in user_set:
             if int(bad_user_node) not in node_graph[str(tweet_node)] and int(tweet_node) not in node_graph[str(bad_user_node)]:
                 pbar.update(1)
@@ -443,6 +442,8 @@ if __name__ == '__main__':
         user_id_list = [str(i) for i in user_id_list]
         user2node_dict = dict(zip(user_id_list, node_id_list))
         bad_user_set = [user2node_dict[i] for i in bad_users]
+        n2l_path = pth.join('../attack15/node_id2label_dict.json')
+        node2label_dict = read_dict_from_json(n2l_path)
         assert bad_user_set is not None
 
         for data in test_loader:
@@ -451,6 +452,7 @@ if __name__ == '__main__':
             indx = data[7].to(device)
             loss_tweet_map, user_map, no_loss_tweet_map = data[8], data[9], data[10]
 
+        reverse_loss_tweet_map = dict(zip(loss_tweet_map.values(), loss_tweet_map.keys()))  # index2node
         # bad_user_set = [usr_id for usr_id in bad_user_set if str(usr_id) in user_map.keys()]
         # print('bad user num: {}'.format(len(bad_user_set)))    
 
@@ -492,7 +494,6 @@ if __name__ == '__main__':
         # correct_fake_label_list.sort()
         # find target tweet node
         assert lowest_idx is not None
-        reverse_loss_tweet_map = dict(zip(loss_tweet_map.values(), loss_tweet_map.keys()))  # index2node
         target_node = reverse_loss_tweet_map[int(lowest_idx)]
         neighbor_user_list = [int(i) for i in adjdict[str(target_node)]]
         print("target_node: {}| attack_user_list number: {}".format(target_node, len(neighbor_user_list)))
@@ -503,19 +504,19 @@ if __name__ == '__main__':
             two_hop_tweet_set.update(adjdict[str(u)])
         print('len(two_hop_tweet_set) :{}'.format(len(two_hop_tweet_set)))
 
-        # get all tweet list in the subgraph
-        test_tweet_set = set(test_indices)
-        test_user_set = set()
-        for tweet in test_indices:
-            user_list = [str(u) for u in adjdict[str(tweet)]]
-            test_user_set.update(user_list)
-        for u in test_user_set:
-            tweet_list = adjdict[str(u)]       
-            test_tweet_set.update(tweet_list)
-        print("user num: {}".format(len(test_user_set)))
-        print("tweet num: {}".format(len(test_tweet_set)))
+        # # get all tweet list in the subgraph
+        # test_tweet_set = set(test_indices)
+        # test_user_set = set()
+        # for tweet in test_indices:
+        #     user_list = [str(u) for u in adjdict[str(tweet)]]
+        #     test_user_set.update(user_list)
+        # for u in test_user_set:
+        #     tweet_list = adjdict[str(u)]       
+        #     test_tweet_set.update(tweet_list)
+        # print("user num: {}".format(len(test_user_set)))
+        # print("tweet num: {}".format(len(test_tweet_set)))
 
-        target_tweet_set = list(two_hop_tweet_set) # a set of node
+        target_tweet_set = [node for node in two_hop_tweet_set if int(node2label_dict[str(node)]) == 2] # a set of node
         # print(bad_user_set)
         # print(attack_user_list)
         # attack_user_list = list(set(bad_user_set) & set(attack_user_list))
