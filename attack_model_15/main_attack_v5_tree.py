@@ -34,7 +34,7 @@ import util
 from util import str2bool
 from GloveEmbed import _get_embedding
 from early_stopping_attack_v2 import EarlyStopping
-from dataset_attack import get_dataloader, data_split
+from dataset_attack_tree import get_dataloader, data_split
 from evaluate import evaluation4class
 from tools import txt2iterable, iterable2txt
 from user2fake_score import get_fake_score
@@ -466,35 +466,17 @@ if __name__ == '__main__':
         node_graph = copy.deepcopy(adjdict) 
 
         # get beginning score
-        model.eval()
-        with torch.no_grad():
-            output = model(user_feats, graph_node_features, index_graph, merged_tree_feature, merged_tree_edge_index, indx)
-            output = F.softmax(output, dim=1)
-            # all_pred = torch.Tensor.cpu(output).detach().numpy()
-            all_pred = output.cpu().data.numpy()
-            _, label_pred = output.max(dim=1)
-            correct = 0
-            rumor_score = 0
-            lowest_acc = 1
-            lowest_idx = None
+        # model.eval()
+        # with torch.no_grad():
+        #     output = model(user_feats, graph_node_features, index_graph, merged_tree_feature, merged_tree_edge_index, indx)
+        #     output = F.softmax(output, dim=1)
+        #     # all_pred = torch.Tensor.cpu(output).detach().numpy()
+        #     all_pred = output.cpu().data.numpy()
+        #     _, label_pred = output.max(dim=1)
 
-            for i in range(len(labels)):
-                if labels[i] == 1 and label_pred[i] == 1:
-                    if all_pred[i, 1] < lowest_acc:
-                        lowest_acc = all_pred[i, 1]
-                        lowest_idx = i
-                    # correct_fake_label_list.append(i)
-                    correct += 1
-                if labels[i] == 1:
-                    rumor_score += all_pred[i,1]
-
-        print('beginning correct fake label', correct)
-        print('beginning rumor value', rumor_score)
-        # acurracy_list = [all_pred[i, 1] for i in correct_fake_label_list]
-        # correct_fake_label_list.sort()
-        # find target tweet node
-        assert lowest_idx is not None
-        target_node = reverse_loss_tweet_map[int(lowest_idx)]
+        target_node = '870'
+        choose_id = loss_tweet_map['870']
+        print(choose_id)
         neighbor_user_list = [int(i) for i in adjdict[str(target_node)]]
         print("target_node: {}| attack_user_list number: {}".format(target_node, len(neighbor_user_list)))
         # get target 2-hop neighbor tweet
@@ -540,7 +522,7 @@ if __name__ == '__main__':
         i = 0
         while correct_score == 1:
             print(i, flush=True)
-            node_graph, index_graph, improve, correct_score = alter_graph(node_graph, index_graph, attack_user_list, [lowest_idx], target_tweet_set)
+            node_graph, index_graph, improve, correct_score = alter_graph(node_graph, index_graph, attack_user_list, [choose_id], target_tweet_set)
             i += 1
             # if improve:
             #     count_improve += 1
