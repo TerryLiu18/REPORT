@@ -372,7 +372,7 @@ def alter_graph(original_node_graph, original_index_graph, user_set, label_list,
 
     print("{}: ({}, {})\n".format(chosen_edge, correct_label_best, fake_value_best))
     print("--------------------------finish 1 add----------------------------")
-    add_edge_record = pth.join('./record_' + args.model + '80.md')   
+    add_edge_record = pth.join('./record_' + args.model + '_true.md')   
     md = open(add_edge_record, 'a') 
     md_write = "{}: ({}, {})\n".format(chosen_edge, correct_label_best, fake_value_best)
     md.write(md_write)
@@ -517,6 +517,7 @@ if __name__ == '__main__':
         # print("tweet num: {}".format(len(test_tweet_set)))
 
         target_tweet_set = [node for node in two_hop_tweet_set if int(node2label_dict[str(node)]) == 2] # a set of node
+        print("target true tweet: " + str(len(target_tweet_set)))
         # print(bad_user_set)
         # print(attack_user_list)
         # attack_user_list = list(set(bad_user_set) & set(attack_user_list))
