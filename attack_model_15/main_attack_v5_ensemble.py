@@ -329,13 +329,13 @@ def alter_graph(original_node_graph, original_index_graph, user_set, label_list,
     # for tweet_node in tqdm(test_indices):   # all test tweet indices
     # for tweet_node in test_indices:
     # pbar = tqdm(total=len(target_tweet_set) * len(user_set))
-    pbar = tqdm(total=60 * 20)
+    pbar = tqdm(total=len(user_set) * len(target_tweet_set))
     pbar.update(0)
     random.shuffle(user_set)
-    for bad_user_node in user_set[:20]:
+    for bad_user_node in user_set:
         improve = False
         random.shuffle(target_tweet_set)
-        for tweet_node in target_tweet_set[:60]:
+        for tweet_node in target_tweet_set:
             pbar.update(1)
             if int(bad_user_node) not in node_graph[str(tweet_node)] and int(tweet_node) not in node_graph[str(bad_user_node)]:
                 new_node_graph = node_graph_add_edge(original_node_graph, bad_user_node, tweet_node)
@@ -372,7 +372,7 @@ def alter_graph(original_node_graph, original_index_graph, user_set, label_list,
 
     print("{}: ({}, {})\n".format(chosen_edge, correct_label_best, fake_value_best))
     print("--------------------------finish 1 add----------------------------", flush=True)
-    add_edge_record = pth.join('./record_' + args.model + '_only_graph.md')   
+    add_edge_record = pth.join('./record_' + args.model + '_graph_tree.md')   
     md = open(add_edge_record, 'a') 
     md_write = "{}: ({}, {})\n".format(chosen_edge, correct_label_best, fake_value_best)
     md.write(md_write)
@@ -380,16 +380,6 @@ def alter_graph(original_node_graph, original_index_graph, user_set, label_list,
     attack_edge = "{}-{}".format(chosen_edge[0], chosen_edge[1])
     greedy_search_attack_trace[attack_edge] = (correct_label_best, fake_value_best)
     return best_node_graph, best_index_graph, improve, correct_label_best
-
-    # chosen_edge: (user_node, tweet_node)
-
-    # select the best attacking edge according to output value only
-    # recalculate the label and value loss in best chosen edge
-    # best_node_graph = node_graph_add_edge(original_node_graph, chosen_edge[0], chosen_edge[1])
-    # best_index_graph = index_graph_add_edge(original_index_graph, chosen_edge[0], chosen_edge[1])
-
-    # add_edge_trace.write("{}: ({}, {})\n".format(chosen_edge, correct_label_final, fake_value_final))
-
 
 
 if __name__ == '__main__':
@@ -491,7 +481,7 @@ if __name__ == '__main__':
         # assert lowest_idx is not None
         # print(lowest_idx)
         # target_node = reverse_loss_tweet_map[int(lowest_idx)]
-        target_node = 870
+        target_node = 355
         lowest_idx = loss_tweet_map[str(target_node)]
         neighbor_user_list = [int(i) for i in adjdict[str(target_node)]]
         print("target_node: {}| attack_user_list number: {}".format(target_node, len(neighbor_user_list)))
