@@ -492,7 +492,7 @@ if __name__ == '__main__':
             two_hop_tweet_set.update(adjdict[str(u)])
         print('len(two_hop_tweet_set) :{}'.format(len(two_hop_tweet_set)))
 
-        target_tweet_set = [node for node in two_hop_tweet_set if int(node2label_dict[str(node)]) == 2 or int(node2label_dict[str(node)]) == 1] # a set of node
+        target_tweet_set = [node for node in two_hop_tweet_set if int(node2label_dict[str(node)]) == 2 or int(node2label_dict[str(node)]) == 1 or int(node2label_dict[str(node)]) == 0] # a set of node
         print("target true and rumor tweet: " + str(len(target_tweet_set)))
         # print(bad_user_set)
         # print(attack_user_list)
@@ -503,7 +503,7 @@ if __name__ == '__main__':
         attack_user_dict = dict(zip(neighbor_user_list, attack_user_score))
         attack_user_list = []
         for u, score in attack_user_dict.items():
-            if int(score)>15:
+            if int(score)>9:
                 attack_user_list.append(u)
 
 
