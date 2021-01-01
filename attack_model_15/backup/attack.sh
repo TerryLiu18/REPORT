@@ -1,1 +1,0 @@
-python main_attack.py --train False --batch_size 64
