@@ -34,7 +34,7 @@ import util
 from util import str2bool
 from GloveEmbed import _get_embedding
 from early_stopping_attack_v2 import EarlyStopping
-from dataset_attack_ensemble import get_dataloader, data_split
+from dataset_attack_ensemble_copy import get_dataloader, data_split
 from evaluate import evaluation4class
 from tools import txt2iterable, iterable2txt
 from user2fake_score import get_fake_score
@@ -329,10 +329,10 @@ def alter_graph(original_node_graph, original_index_graph, user_set, label_list,
     # for tweet_node in tqdm(test_indices):   # all test tweet indices
     # for tweet_node in test_indices:
     # pbar = tqdm(total=len(target_tweet_set) * len(user_set))
-    pbar = tqdm(total=900)
+    pbar = tqdm(total=60 * 20)
     pbar.update(0)
     random.shuffle(user_set)
-    for bad_user_node in user_set[:15]:
+    for bad_user_node in user_set[:20]:
         improve = False
         random.shuffle(target_tweet_set)
         for tweet_node in target_tweet_set[:60]:
@@ -380,6 +380,16 @@ def alter_graph(original_node_graph, original_index_graph, user_set, label_list,
     attack_edge = "{}-{}".format(chosen_edge[0], chosen_edge[1])
     greedy_search_attack_trace[attack_edge] = (correct_label_best, fake_value_best)
     return best_node_graph, best_index_graph, improve, correct_label_best
+
+    # chosen_edge: (user_node, tweet_node)
+
+    # select the best attacking edge according to output value only
+    # recalculate the label and value loss in best chosen edge
+    # best_node_graph = node_graph_add_edge(original_node_graph, chosen_edge[0], chosen_edge[1])
+    # best_index_graph = index_graph_add_edge(original_index_graph, chosen_edge[0], chosen_edge[1])
+
+    # add_edge_trace.write("{}: ({}, {})\n".format(chosen_edge, correct_label_final, fake_value_final))
+
 
 
 if __name__ == '__main__':
@@ -481,7 +491,7 @@ if __name__ == '__main__':
         # assert lowest_idx is not None
         # print(lowest_idx)
         # target_node = reverse_loss_tweet_map[int(lowest_idx)]
-        target_node = 870
+        target_node = 355
         lowest_idx = loss_tweet_map[str(target_node)]
         neighbor_user_list = [int(i) for i in adjdict[str(target_node)]]
         print("target_node: {}| attack_user_list number: {}".format(target_node, len(neighbor_user_list)))
@@ -492,7 +502,7 @@ if __name__ == '__main__':
             two_hop_tweet_set.update(adjdict[str(u)])
         print('len(two_hop_tweet_set) :{}'.format(len(two_hop_tweet_set)))
 
-        target_tweet_set = [node for node in two_hop_tweet_set] # a set of node
+        target_tweet_set = [node for node in two_hop_tweet_set if int(node2label_dict[str(node)]) == 2 or int(node2label_dict[str(node)]) == 1] # a set of node
         print("target true and rumor tweet: " + str(len(target_tweet_set)))
         # print(bad_user_set)
         # print(attack_user_list)
@@ -503,13 +513,13 @@ if __name__ == '__main__':
         attack_user_dict = dict(zip(neighbor_user_list, attack_user_score))
         attack_user_list = []
         for u, score in attack_user_dict.items():
-            if int(score) > 20:
+            if int(score)>15:
                 attack_user_list.append(u)
 
 
         # print('len(target_tweet_set): {}'.format(len(target_tweet_set)))
         # print('len(bad_user_set): {}'.format(len(bad_user_set)))
-        print('len(attack_user_list): {}'.format(len((attack_user_list))), flush=True)
+        print('len(attack_user_list): {}'.format(len(attack_user_list)), flush=True)
 
         #sys.exit()
         correct_score = 1

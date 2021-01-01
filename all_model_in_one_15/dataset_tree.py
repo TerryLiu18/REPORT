@@ -8,7 +8,6 @@ import util
 import time
 from time import sleep
 from torch.utils.data.sampler import SubsetRandomSampler
-from tools import txt2iterable, iterable2txt
 import numpy as np
 import random
 
@@ -20,8 +19,8 @@ pd.set_option('max_colwidth', 120)
 SOURCE_TWEET_NUM = 1472
 
 # prepare df for acceleration
-tweet_path2 = pth.join('../load_data15_1473/ensemble_attack870/comments_text_encode3.csv')
-tree_dict_path = pth.join('../load_data15_1473/ensemble_attack870/tree_dictionary.json')
+tweet_path2 = pth.join('../load_data15_1473/comments_text_encode3_attack.csv')
+tree_dict_path = pth.join('../load_data15_1473/tree_dictionary_attack.json')
 
 # select source tweet
 source_tree_id_list = [str(node) + '_0' for node in list(range(SOURCE_TWEET_NUM))]
@@ -42,7 +41,7 @@ tweet_df = tweet_df.set_index('tree_id')   # can not switch sequence here
 
 tree_edge_dict = util.read_dict_from_json(tree_dict_path)  # dictionary
 df_len = source_tweet_df.shape[0]
-user_filepath2 = pth.join('../load_data15_1473/filtered_user_profile2_encode2.csv')
+user_filepath2 = pth.join('../load_data15_1473/filtered_user_profile3_encode2.csv')
 
 
 u_df = pd.read_csv(user_filepath2)[['node_id', 'statuses_count', 'favourites_count',
@@ -55,7 +54,9 @@ u_df['text'] = u_df['text'].apply(lambda text: eval(text))
 """
 adjdict: {'1':[1311,1312,1313], '1311':[1], '1312':[1], '1313':[1]}
 """
-adjdict = None
+graph_connection_path = '../load_data15_1473/graph_connections3.json'
+adjdict = util.read_dict_from_json(pth.join(graph_connection_path))
+
 
 def tree2num(tree_id) -> int:
     """
@@ -173,7 +174,6 @@ def merge_tree(tree_feature_list):
 
 
 def twitter_collate(batch):
-    global adjdict
     """
     task1: graph edge_index reform and re-number;
     task2: tree edge_index%feature merge
@@ -293,28 +293,43 @@ def twitter_collate(batch):
     return torch.LongTensor(graph_node_features), torch.LongTensor(graph_edge_index), \
             torch.LongTensor(user_text), torch.tensor(user_feats, dtype=torch.float32), \
             torch.LongTensor(merged_tree_edge_index), torch.LongTensor(merged_tree_feature), \
-            torch.LongTensor(labels), torch.LongTensor(indices),\
-            loss_tweet_map, user_map, no_loss_tweet_map
-            
-def data_split():
+            torch.LongTensor(labels), torch.LongTensor(indices)
 
-    train_indices = txt2iterable(pth.join('train_indices.txt'))
-    test_indices = txt2iterable(pth.join('test_indices.txt'))
+def data_split():
+    indices = list(range(SOURCE_TWEET_NUM))
+    train_indices, test_indices = [], []
+    one = [idx for idx in indices if index2label[idx] == 0]
+    two = [idx for idx in indices if index2label[idx] == 1]
+    three = [idx for idx in indices if index2label[idx] == 2]
+    four = [idx for idx in indices if index2label[idx] == 3]
+    random.shuffle(one)
+    random.shuffle(two)
+    random.shuffle(three)
+    random.shuffle(four)
+    test_indices += one[:int(0.2*len(one))]
+    test_indices += two[:int(0.2*len(two))]
+    test_indices += three[:int(0.2*len(three))]
+    test_indices += four[:int(0.2*len(four))]
+    train_indices += one[int(0.2*len(one)):]
+    train_indices += two[int(0.2*len(two)):]
+    train_indices += three[int(0.2*len(three)):]
+    train_indices += four[int(0.2*len(four)):]
 
     return train_indices, test_indices
 
-def get_dataloader(batch_size, train_indices, test_indices, adj_dict):
-    global adjdict
-    # adjdict = util.read_dict_from_json(adjdict_path)
-    adjdict = adj_dict
-
+def get_dataloader(batch_size, seed, train_indices, test_indices):
     tweetdata = TwitterDataset()
+    # random.seed(seed)
+    # random.shuffle(indices)
+    # split = int(SOURCE_TWEET_NUM * 0.8)
+    # train_indices, test_indices = indices[:split], indices[split:]
 
     train_sampler = SubsetRandomSampler(train_indices)
     test_sampler = SubsetRandomSampler(test_indices)
-    train_data = DataLoader(tweetdata,batch_size=batch_size,shuffle=False, sampler=train_sampler,collate_fn=twitter_collate,num_workers=5)
-    test_data = DataLoader(tweetdata,batch_size=len(test_indices),shuffle=False, sampler=test_sampler,collate_fn=twitter_collate,num_workers=5)
 
+    train_data = DataLoader(tweetdata,batch_size=batch_size,sampler=train_sampler,collate_fn=twitter_collate,num_workers=5)
+    test_data = DataLoader(tweetdata,batch_size=batch_size,sampler=test_sampler,collate_fn=twitter_collate,num_workers=5)
+    
     return train_data, test_data
 
 

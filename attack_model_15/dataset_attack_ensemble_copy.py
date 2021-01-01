@@ -20,8 +20,8 @@ pd.set_option('max_colwidth', 120)
 SOURCE_TWEET_NUM = 1472
 
 # prepare df for acceleration
-tweet_path2 = pth.join('../load_data15_1473/ensemble_attack870/comments_text_encode3.csv')
-tree_dict_path = pth.join('../load_data15_1473/ensemble_attack870/tree_dictionary.json')
+tweet_path2 = pth.join('../load_data15_1473/ensemble_attack355/comments_text_encode3_attack_ensemble60.csv')
+tree_dict_path = pth.join('../load_data15_1473/ensemble_attack355/tree_dictionary_attack_ensemble60.json')
 
 # select source tweet
 source_tree_id_list = [str(node) + '_0' for node in list(range(SOURCE_TWEET_NUM))]

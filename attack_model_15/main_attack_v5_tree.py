@@ -473,10 +473,30 @@ if __name__ == '__main__':
         #     # all_pred = torch.Tensor.cpu(output).detach().numpy()
         #     all_pred = output.cpu().data.numpy()
         #     _, label_pred = output.max(dim=1)
+        #     correct = 0
+        #     rumor_score = 0
+        #     lowest_acc = 1
+        #     lowest_idx = None
+            
+        #     curr_dict = {}
+        #     for i in range(len(labels)):
+        #         if labels[i] == 1 and label_pred[i] == 1:
+        #             curr_dict[reverse_loss_tweet_map[i]] = all_pred[i,1]
+        #             if all_pred[i, 1] < lowest_acc:
+        #                 lowest_acc = all_pred[i, 1]
+        #                 lowest_idx = i
+        #             # correct_fake_label_list.append(i)
+        #             correct += 1
+        #         if labels[i] == 1:
+        #             rumor_score += all_pred[i,1]
+        # curr_dict = sorted(curr_dict.items(), key=lambda x: x[1])
+        # print(curr_dict)
+        # print('beginning correct fake label', correct)
+        # print('beginning rumor value', rumor_score)
 
-        target_node = '870'
-        choose_id = loss_tweet_map['870']
-        print(choose_id)
+        # assert lowest_idx is not None
+        target_node = 830
+        lowest_idx = loss_tweet_map[str(target_node)]
         neighbor_user_list = [int(i) for i in adjdict[str(target_node)]]
         print("target_node: {}| attack_user_list number: {}".format(target_node, len(neighbor_user_list)))
         # get target 2-hop neighbor tweet
@@ -498,7 +518,7 @@ if __name__ == '__main__':
         # print("user num: {}".format(len(test_user_set)))
         # print("tweet num: {}".format(len(test_tweet_set)))
 
-        target_tweet_set = [node for node in two_hop_tweet_set if int(node2label_dict[str(node)]) == 2] # a set of node
+        target_tweet_set = [node for node in two_hop_tweet_set if int(node2label_dict[str(node)]) == 2 or int(node2label_dict[str(node)]) == 1] # a set of node
         print("target true tweet: " + str(len(target_tweet_set)))
         # print(bad_user_set)
         # print(attack_user_list)
@@ -509,7 +529,7 @@ if __name__ == '__main__':
         attack_user_dict = dict(zip(neighbor_user_list, attack_user_score))
         attack_user_list = []
         for u, score in attack_user_dict.items():
-            if int(score)>30:
+            if int(score)>15:
                 attack_user_list.append(u)
 
 
@@ -522,7 +542,7 @@ if __name__ == '__main__':
         i = 0
         while correct_score == 1:
             print(i, flush=True)
-            node_graph, index_graph, improve, correct_score = alter_graph(node_graph, index_graph, attack_user_list, [choose_id], target_tweet_set)
+            node_graph, index_graph, improve, correct_score = alter_graph(node_graph, index_graph, attack_user_list, [lowest_idx], target_tweet_set)
             i += 1
             # if improve:
             #     count_improve += 1

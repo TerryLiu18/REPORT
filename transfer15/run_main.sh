@@ -1,0 +1,1 @@
+python main.py --model ensemble --batch 64 --seed 8 --gpu 1 --lr 0.003 --direction td --load_ckpt True --ckpt_name best --train False 

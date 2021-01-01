@@ -108,3 +108,4 @@ class Net(nn.Module):
         graph_output = self.graphGCN(user_feats, graph_node_features, graph_edge_index, indices)
         out_y = self.fc(graph_output)
         return out_y
+        

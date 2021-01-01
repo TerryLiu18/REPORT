@@ -8,20 +8,22 @@ import util
 import time
 from time import sleep
 from torch.utils.data.sampler import SubsetRandomSampler
-from tools import txt2iterable, iterable2txt
 import numpy as np
 import random
 
-# show all rows
+
 pd.set_option('display.max_columns', None)
+# show all rows
 pd.set_option('display.max_rows', None)
 pd.set_option('max_colwidth', 120)
 
-SOURCE_TWEET_NUM = 1472
+SOURCE_TWEET_NUM = 790
 
 # prepare df for acceleration
-tweet_path2 = pth.join('../load_data15_1473/ensemble_attack870/comments_text_encode3.csv')
-tree_dict_path = pth.join('../load_data15_1473/ensemble_attack870/tree_dictionary.json')
+tweet_path2 = pth.join('../load_data16/comments_text_encode3.csv')
+
+tree_dict_path = pth.join('../load_data16/tree_dictionary.json')
+
 
 # select source tweet
 source_tree_id_list = [str(node) + '_0' for node in list(range(SOURCE_TWEET_NUM))]
@@ -42,8 +44,9 @@ tweet_df = tweet_df.set_index('tree_id')   # can not switch sequence here
 
 tree_edge_dict = util.read_dict_from_json(tree_dict_path)  # dictionary
 df_len = source_tweet_df.shape[0]
-user_filepath2 = pth.join('../load_data15_1473/filtered_user_profile2_encode2.csv')
-
+# user_filepath2 = pth.join('../load_data16/filtered_user_profile4_encode2.csv')
+user_filepath2 = pth.join('../load_data16/filtered_user_profile3_encode2.csv')
+# user_filepath2 = pth.join('../load_data16/filtered_user_profile5_encode2.csv')
 
 u_df = pd.read_csv(user_filepath2)[['node_id', 'statuses_count', 'favourites_count',
        'listed_count', 'followers_count', 'friends_count', 'text', 'year',
@@ -55,7 +58,11 @@ u_df['text'] = u_df['text'].apply(lambda text: eval(text))
 """
 adjdict: {'1':[1311,1312,1313], '1311':[1], '1312':[1], '1313':[1]}
 """
-adjdict = None
+# graph_connection_path = '../load_data16/graph_connections4.json'
+graph_connection_path = '../load_data16/graph_connections3.json'
+# graph_connection_path = '../load_data16/graph_connections5.json'
+adjdict = util.read_dict_from_json(pth.join(graph_connection_path))
+
 
 def tree2num(tree_id) -> int:
     """
@@ -173,7 +180,6 @@ def merge_tree(tree_feature_list):
 
 
 def twitter_collate(batch):
-    global adjdict
     """
     task1: graph edge_index reform and re-number;
     task2: tree edge_index%feature merge
@@ -197,11 +203,14 @@ def twitter_collate(batch):
 
     labels = []
     graph_edge_index = []
+    tree_edge_index_list = []
     tree_feature_list = []
+    max_idx_list = []
     bias = len(batch)
     merged_tree_edge_index = []
     new_index = 0
     sigma_max_idx = 0
+    root2children = dict()
     indices = []
 
     for graph_info, (tree_edge_index, tree_feature, max_idx) in batch:
@@ -248,6 +257,7 @@ def twitter_collate(batch):
     # print("sigma_max_idx", sigma_max_idx+batch_size)
     indices = list(range(0,batch_size)) + indices
     # print(indices)
+    loss_tweets_cnt = len(batch)
     bias += len(user_map)
 
     for u in user_map:
@@ -288,33 +298,46 @@ def twitter_collate(batch):
     user_feats = user_feature[['statuses_count', 'favourites_count','listed_count', \
                                 'followers_count', 'friends_count','year','month', \
                                 'day', 'hour']].values.tolist()
-    # print('merged_tree_edge_index', len(merged_tree_edge_index))
-    # print('merged_tree_feature', len(merged_tree_feature))
+    
     return torch.LongTensor(graph_node_features), torch.LongTensor(graph_edge_index), \
             torch.LongTensor(user_text), torch.tensor(user_feats, dtype=torch.float32), \
             torch.LongTensor(merged_tree_edge_index), torch.LongTensor(merged_tree_feature), \
-            torch.LongTensor(labels), torch.LongTensor(indices),\
-            loss_tweet_map, user_map, no_loss_tweet_map
-            
-def data_split():
+            torch.LongTensor(labels), torch.LongTensor(indices)
 
-    train_indices = txt2iterable(pth.join('train_indices.txt'))
-    test_indices = txt2iterable(pth.join('test_indices.txt'))
+
+def data_split():
+    indices = list(range(SOURCE_TWEET_NUM))
+    train_indices, test_indices = [], []
+    one = [idx for idx in indices if index2label[idx] == 0]
+    two = [idx for idx in indices if index2label[idx] == 1]
+    three = [idx for idx in indices if index2label[idx] == 2]
+    four = [idx for idx in indices if index2label[idx] == 3]
+    random.shuffle(one)
+    random.shuffle(two)
+    random.shuffle(three)
+    random.shuffle(four)
+    train_indices += one[:int(0.2*len(one))]
+    train_indices += two[:int(0.2*len(two))]
+    train_indices += three[:int(0.2*len(three))]
+    train_indices += four[:int(0.2*len(four))]
+    test_indices += one[int(0.2*len(one)):]
+    test_indices += two[int(0.2*len(two)):]
+    test_indices += three[int(0.2*len(three)):]
+    test_indices += four[int(0.2*len(four)):]
 
     return train_indices, test_indices
 
-def get_dataloader(batch_size, train_indices, test_indices, adj_dict):
-    global adjdict
-    # adjdict = util.read_dict_from_json(adjdict_path)
-    adjdict = adj_dict
-
+def get_dataloader(batch_size, train_indices, test_indices):
     tweetdata = TwitterDataset()
+    # random.seed(seed)
+    # random.shuffle(indices)
 
     train_sampler = SubsetRandomSampler(train_indices)
     test_sampler = SubsetRandomSampler(test_indices)
-    train_data = DataLoader(tweetdata,batch_size=batch_size,shuffle=False, sampler=train_sampler,collate_fn=twitter_collate,num_workers=5)
-    test_data = DataLoader(tweetdata,batch_size=len(test_indices),shuffle=False, sampler=test_sampler,collate_fn=twitter_collate,num_workers=5)
 
+    train_data = DataLoader(tweetdata,batch_size=batch_size,sampler=train_sampler,collate_fn=twitter_collate,num_workers=5)
+    test_data = DataLoader(tweetdata,batch_size=batch_size,sampler=test_sampler,collate_fn=twitter_collate,num_workers=5)
+    
     return train_data, test_data
 
 
@@ -324,23 +347,19 @@ if __name__ == "__main__":
     for x in train_data:
         # loss_tweets_cnt, labels, graph_edge_index, graph_loss_feature, user_feature, graph_no_loss_feature, \
         # merged_tree_edge_index, merged_tree_feature
-
-        # graph_node_features, graph_edge_index, user_text, user_feats, merged_tree_edge_index
-        # ,merged_tree_feature, labels, indices
-
-        # print('-----------------------0.graph_node_feature------------------')
-        # print(x[0])
-        # print('-----------------------1.graph_edge_index------------------')
-        # print(x[1])
-        # print('-----------------------2.user_text------------------')
-        # print(x[2])
-        # print('-----------------------3.user_feats------------------')
-        # print(x[3])
+        print('-----------------------0.graph_node_feature------------------')
+        print(x[0])
+        print('-----------------------1.graph_edge_index------------------')
+        print(x[1])
+        print('-----------------------2.user_text------------------')
+        print(x[2])
+        print('-----------------------3.user_feats------------------')
+        print(x[3])
         print('-----------------------4.merged_tree_edge_index-----------------')
-        print(x[4].shape)
+        print(x[4])
         print('-----------------------5.merged_tree_feature------------------')
-        print(x[5].shape)
-        # print('-----------------------6.labels------------------')
-        # print(x[6])
+        print(x[5])
+        print('-----------------------6.labels------------------')
+        print(x[6])
         print('-----------------------7.indices------------------')
         print(x[7])

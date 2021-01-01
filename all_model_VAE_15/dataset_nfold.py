@@ -319,7 +319,7 @@ def twitter_collate(batch):
 
     merged_tree_feature = merge_tree(tree_feature_list)
     merged_tree_feature = merged_tree_feature['text'].tolist()
-
+    
     loss_t_list = [int(t) for t in list(loss_tweet_map.keys())]
     ## sort no_loss nodes based on values
     sort_no_loss = sorted(no_loss_tweet_map.items(), key=lambda item: item[1])

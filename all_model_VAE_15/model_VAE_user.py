@@ -11,6 +11,7 @@ from torch.autograd import Variable
 from torch.nn.init import xavier_uniform
 import torch.nn.functional as F
 import copy
+from userVAE import *
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -54,8 +55,11 @@ class GraphGCN(nn.Module):
         self.tweet_out_size = args.tweet_embed_size
         self.dropout = args.dropout
         self.freeze = args.freeze
-        # user embedding
-        self.userEmbed = UserEncoder(self.freeze, self.user_feat_size, self.user_out_size)
+        self.z_dim = args.z_dim
+        #### user embedding
+        # self.userEmbed = UserEncoder(self.freeze, self.user_feat_size, self.user_out_size)
+        self.userEmbed = VAE(self.user_feat_size, self.z_dim)
+        self.fc = nn.Linear(self.z_dim, 100)
         self.num_layer = 2
 
         # tweet embedding
@@ -67,7 +71,10 @@ class GraphGCN(nn.Module):
         
     def forward(self, user_feats, graph_node_features, graph_edge_index, indices):
         batch_size = max(indices) + 1
-        user_embedding = self.userEmbed(user_feats) # batch * hidden
+        user_embedding, kl_loss, rec_loss = self.userEmbed(user_feats) # batch * hidden
+        # user_embedding = self.fc(user_embedding)
+
+        ## tweet results
         tweet_embed = self.tweets_embedding(graph_node_features) # tweet node embedding
         tweet_embed = tweet_embed.permute(1,0,2) ##seq * batch * hidden
         state_size = [self.num_layer, tweet_embed.size(1), self.tweet_out_size]
@@ -81,7 +88,7 @@ class GraphGCN(nn.Module):
         x = F.elu(x)
         x = self.conv2(x, graph_edge_index)
         x = F.elu(x)
-        return x[:batch_size, :]  # choose root (loss_tweet)
+        return x[:batch_size, :], kl_loss, rec_loss  # choose root (loss_tweet)
 
 
 class TreeGCN(nn.Module):
@@ -116,10 +123,6 @@ class TreeGCN(nn.Module):
        # print('hn', hn.shape)
         x_input = hn[-1,:,:] ## last layer
         # # replace the embedding of root source
-
-        # for i in range(max(indices) + 1):  #batch size
-        #     x_input[i,:] = user_root_embed[i,:]   
-       # print('x_input', x_input.shape)
 
         if self.direction == 'bu':
             index = torch.LongTensor([1, 0])
@@ -167,8 +170,6 @@ class Net(nn.Module):
 
         self.graph_hidden_size1 = args.graph_hidden_size1
         self.graph_hidden_size2 = args.graph_hidden_size2
-        # self.graph_hidden_size3 = args.graph_hidden_size3
-        
         self.linear_size = args.linear_hidden_size1
 
         self.num_layer = 2
@@ -178,15 +179,14 @@ class Net(nn.Module):
         self.GraphGCN = GraphGCN(self.args, tweet_embedding_matrix, self.graph_hidden_size1, self.graph_hidden_size2)
         self.TreeGCN = TreeGCN(self.args, self.direction, tweet_embedding_matrix, self.text_input_size, self.tree_hidden_size1, self.tree_hidden_size2)
         self.fc1 = nn.Linear(self.tree_hidden_size1 + self.tree_hidden_size2 + self.graph_hidden_size2, 4)
-        # self.fc2 = nn.Linear(self.linear_size, 4)   
+        # self.fc2 = nn.Linear(self.linear_size, 4)
 
     def forward(self, user_feats, graph_node_features, graph_edge_index, merged_tree_feature, merged_tree_edge_index, indices):
-        graph_output = self.GraphGCN(user_feats, graph_node_features, graph_edge_index, indices)
+        graph_output,kl_loss, rec_loss = self.GraphGCN(user_feats, graph_node_features, graph_edge_index, indices)
         tree_output = self.TreeGCN(merged_tree_feature, merged_tree_edge_index, indices)
 
         tweet_feature = torch.cat((graph_output, tree_output), 1)
         out_y = self.fc1(tweet_feature)
-        # out_y = self.fc2(out_y)
-        return out_y
         
+        return out_y, kl_loss, rec_loss
         

@@ -51,14 +51,10 @@ class VAE(nn.Module):
         logvar = latent_z[:,self.z_dim:]
         z = reparametrize(mu, logvar)
         x_recon = self.decoder(z)
+        
         kl_loss = self._kl_loss(mu, logvar)
         rec_loss = self._recon_loss(x_recon, x)
         
         return z, kl_loss, rec_loss
-        
-
-
-
-
         
         
